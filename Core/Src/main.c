@@ -22,8 +22,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "rgb.h"
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,6 +52,8 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
+volatile bool is_sleep_requested = false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -66,15 +69,19 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_0) // PB0 눌림
+    {
+        is_sleep_requested ^= 1; // 0->1 또는 1->0 토글!
+    }
+}
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
-
-
 int main(void)
 {
 
@@ -121,22 +128,72 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	  if(!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0))
-//	  {
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
-//	  }
-//	  else
-//	  {
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
-//
-//	  }
-	  char msg[] = "hi\r\n";
-	  HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
-	  HAL_Delay(500);
+	  if(is_sleep_requested == true)
+	  {
+		  //Enter Sleep Mode
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+
+		  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+		  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+		  /** Initializes the RCC Oscillators according to the specified parameters
+		  * in the RCC_OscInitTypeDef structure.
+		  */
+		  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
+		  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+		  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+		  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+		  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+		  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+		  {
+		    Error_Handler();
+		  }
+
+		  /** Configure the SYSCLKSource, HCLK, PCLK1 and PCLK2 clocks dividers
+		  */
+		  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK4|RCC_CLOCKTYPE_HCLK2
+		                              |RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+		                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+		  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+		  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV16;
+		  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+		  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+		  RCC_ClkInitStruct.AHBCLK2Divider = RCC_SYSCLK_DIV16;
+		  RCC_ClkInitStruct.AHBCLK4Divider = RCC_SYSCLK_DIV16;
+
+		  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+		  {
+		    Error_Handler();
+		  }
+
+		  //enter sleep mode
+		  HAL_SuspendTick();
+		  HAL_NVIC_DisableIRQ(USART1_IRQn);
+		  HAL_NVIC_DisableIRQ(TIM1_UP_TIM16_IRQn);
+		  HAL_NVIC_DisableIRQ(TIM1_TRG_COM_TIM17_IRQn);
+		  HAL_NVIC_DisableIRQ(I2C1_EV_IRQn);
+		  HAL_NVIC_DisableIRQ(I2C1_ER_IRQn);
+
+//		  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+		  HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+		  HAL_ResumeTick();
+		  SystemClock_Config();
+
+
+		  HAL_NVIC_EnableIRQ(USART1_IRQn);
+		  HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
+		  HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
+		  HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
+		  HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+	  }
+
+
+//	  char msg[] = "hi\r\n";
+//	  HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+//	  HAL_Delay(500);
 
   }
   /* USER CODE END 3 */
@@ -186,10 +243,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-
-  /** Enables the Clock Security System
-  */
-  HAL_RCC_EnableCSS();
 }
 
 /**
@@ -382,7 +435,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PB0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -392,6 +445,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
