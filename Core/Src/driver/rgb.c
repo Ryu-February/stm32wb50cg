@@ -49,7 +49,7 @@ void rgb_init(void)
 
 //	rgb_set_color(COLOR_WHITE);
 
-//	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);//white led init
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);//white led init
 }
 
 

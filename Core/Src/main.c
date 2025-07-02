@@ -179,8 +179,6 @@ int main(void)
 	  if(is_sleep_requested == true)
 	  {
 		  //Enter Sleep Mode
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
-
 		  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
 		  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -235,8 +233,6 @@ int main(void)
 		  HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
 		  HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
 		  HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
-
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
 
 //		  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);  // 혹시 예전 wakeup 설정 있으면 클리어
 //		  standby_with_rtc(5);
