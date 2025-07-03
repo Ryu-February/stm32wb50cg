@@ -58,6 +58,7 @@ UART_HandleTypeDef huart1;
 
 volatile bool is_sleep_requested = false;
 bool restored_standby = false;
+extern volatile bool uart_enable;
 
 /* USER CODE END PV */
 
@@ -114,12 +115,12 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-	if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB))  // 스탠바이로부터 복귀한 경우
-	{
-		__HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);  // 이거 꼭 클리어해줘야 함!
-		// 💡 여긴 리셋 이후 재부팅인 거임. 스탠바이에서 깼다는 뜻!
-		restored_standby = true;
-	}
+//	if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB))  // 스탠바이로부터 복귀한 경우
+//	{
+//		__HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);  // 이거 꼭 클리어해줘야 함!
+//		// 💡 여긴 리셋 이후 재부팅인 거임. 스탠바이에서 깼다는 뜻!
+//		restored_standby = true;
+//	}
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -153,23 +154,21 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim17);
   HAL_UART_Init(&huart1);
 
-  if (restored_standby)  // 스탠바이로부터 복귀한 경우
-  {
-	  HAL_Delay(500);
-	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
-	  	char msg3[] = "restored\r\n";
-		HAL_UART_Transmit(&huart1, (uint8_t *)msg3, strlen(msg3), HAL_MAX_DELAY);
-
-  }
+//  if (restored_standby)  // 스탠바이로부터 복귀한 경우
+//  {
+//	  HAL_Delay(500);
+//	  char msg3[] = "restored\r\n";
+//	  HAL_UART_Transmit(&huart1, (uint8_t *)msg3, strlen(msg3), HAL_MAX_DELAY);
+//
+//  }
 
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	char msg[] = "hi\r\n";
-	HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
-	HAL_Delay(500);
+//	char msg[] = "hi\r\n";
+//	HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 
   while (1)
   {
@@ -179,39 +178,38 @@ int main(void)
 	  if(is_sleep_requested == true)
 	  {
 		  //Enter Sleep Mode
-		  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-		  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-		  /** Initializes the RCC Oscillators according to the specified parameters
-		  * in the RCC_OscInitTypeDef structure.
-		  */
-		  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
-		  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-		  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-		  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-		  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-		  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-		  {
-		    Error_Handler();
-		  }
-
-		  /** Configure the SYSCLKSource, HCLK, PCLK1 and PCLK2 clocks dividers
-		  */
-		  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK4|RCC_CLOCKTYPE_HCLK2
-		                              |RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-		                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-		  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-		  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV16;
-		  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-		  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-		  RCC_ClkInitStruct.AHBCLK2Divider = RCC_SYSCLK_DIV16;
-		  RCC_ClkInitStruct.AHBCLK4Divider = RCC_SYSCLK_DIV16;
-
-		  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-		  {
-		    Error_Handler();
-		  }
-
+//		  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+//		  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+//
+//		  /** Initializes the RCC Oscillators according to the specified parameters
+//		  * in the RCC_OscInitTypeDef structure.
+//		  */
+//		  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
+//		  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+//		  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+//		  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+//		  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+//		  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//		  {
+//		    Error_Handler();
+//		  }
+//
+//		  /** Configure the SYSCLKSource, HCLK, PCLK1 and PCLK2 clocks dividers
+//		  */
+//		  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK4|RCC_CLOCKTYPE_HCLK2
+//		                              |RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+//		                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+//		  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+//		  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV16;
+//		  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+//		  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+//		  RCC_ClkInitStruct.AHBCLK2Divider = RCC_SYSCLK_DIV16;
+//		  RCC_ClkInitStruct.AHBCLK4Divider = RCC_SYSCLK_DIV16;
+//
+//		  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+//		  {
+//		    Error_Handler();
+//		  }
 		  //enter sleep mode
 		  HAL_SuspendTick();
 		  HAL_NVIC_DisableIRQ(USART1_IRQn);
@@ -220,28 +218,50 @@ int main(void)
 		  HAL_NVIC_DisableIRQ(I2C1_EV_IRQn);
 		  HAL_NVIC_DisableIRQ(I2C1_ER_IRQn);
 
+		  /*SLEEP MODE*/
 //		  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+		  /*SLEEP MODE(Low Power)*/
 		  HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+		  /*STOP MODE(Low Power)*/
 //		  HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+//		  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);  // 혹시 예전 wakeup 설정 있으면 클리어
+//		  standby_with_rtc(5);
+//		  HAL_UART_Init(&huart1);
 
 		  HAL_ResumeTick();
 		  SystemClock_Config();
-
 
 		  HAL_NVIC_EnableIRQ(USART1_IRQn);
 		  HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
 		  HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
 		  HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
 		  HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
-
-//		  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);  // 혹시 예전 wakeup 설정 있으면 클리어
-//		  standby_with_rtc(5);
-//		  HAL_UART_Init(&huart1);
 	  }
+//	  else
+//	  {
+//		  HAL_ResumeTick();
+//		  SystemClock_Config();
+//
+//		  HAL_NVIC_EnableIRQ(USART1_IRQn);
+//		  HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
+//		  HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
+//		  HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
+//		  HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+//	  }
 
-//	  char msg2[] = "rcy\r\n";
-//	  HAL_UART_Transmit(&huart1, (uint8_t *)msg2, strlen(msg2), HAL_MAX_DELAY);
-//	  HAL_Delay(1000);
+//	  if(uart_enable == true)
+//	  {
+//		  char msg2[] = "rcy\r\n";
+//		  HAL_UART_Transmit(&huart1, (uint8_t *)msg2, strlen(msg2), HAL_MAX_DELAY);
+//		  uart_enable = false;
+//	  }
+//	  else
+//	  {
+//		  char msg4[] = "uart not enabled\r\n";
+//		  HAL_UART_Transmit(&huart1, (uint8_t *)msg4, strlen(msg4), HAL_MAX_DELAY);
+//	  }
+
   }
   /* USER CODE END 3 */
 }
@@ -292,6 +312,10 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
+  /** Enables the Clock Security System
+  */
+  HAL_RCC_EnableCSS();
 }
 
 /**
