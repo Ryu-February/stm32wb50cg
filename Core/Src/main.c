@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "rgb.h"
+
 //#include "rtc.h"
 /* USER CODE END Includes */
 
@@ -82,25 +83,32 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if (GPIO_Pin == GPIO_PIN_0) // PB0 눌림
     {
         is_sleep_requested ^= 1; // 0->1 또는 1->0 토글!
+
     }
 }
 
 void standby_with_rtc(uint32_t seconds)
 {
+//	CLEAR_BIT(PWR->CR4, PWR_CR4_C2BOOT);
     uint32_t ticks = seconds * 2048;
 
     // GPIO High-Z 설정 (예: PA4, PA5, PA6)
 
-//    HAL_PWREx_DisableGPIOPullUp(PWR_GPIO_B, PWR_GPIO_BIT_0 | PWR_GPIO_BIT_1);
-//    HAL_PWREx_DisableGPIOPullDown(PWR_GPIO_B, PWR_GPIO_BIT_0 | PWR_GPIO_BIT_1);
-//    HAL_PWREx_DisableGPIOPullUp(PWR_GPIO_A, PWR_GPIO_BIT_4 | PWR_GPIO_BIT_5 | PWR_GPIO_BIT_6);
-//    HAL_PWREx_DisableGPIOPullDown(PWR_GPIO_A, PWR_GPIO_BIT_4 | PWR_GPIO_BIT_5 | PWR_GPIO_BIT_6);
-
     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);  // 먼저 클리어!
-
+//    __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+
     HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, ticks, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+
+    if(   (LL_PWR_IsActiveFlag_C1SB() == 0)
+         || (LL_PWR_IsActiveFlag_C2SB() == 0)
+        )
+      {
+        /* Set the lowest low-power mode for CPU2: shutdown mode */
+        LL_C2_PWR_SetPowerMode(LL_PWR_MODE_SHUTDOWN);
+      }
     HAL_PWR_EnterSTANDBYMode();  // 진입
+//    NVIC_SystemReset();  // 진짜 리셋!
 }
 /* USER CODE END 0 */
 
@@ -117,6 +125,26 @@ int main(void)
 	{
 		__HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);  // 이거 꼭 클리어해줘야 함!
 		// 💡 여긴 리셋 이후 재부팅인 거임. 스탠바이에서 깼다는 뜻!
+//	 // RCC GPIOA Enable (만약 HAL_Init() 전이라면 수동으로)
+//		RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+//
+//		// PA4 Output 설정
+//		GPIOA->MODER &= ~(0x3 << (4 * 2));
+//		GPIOA->MODER |=  (0x1 << (4 * 2));
+//
+//		// PA4 High
+//		GPIOA->ODR &= ~GPIO_ODR_OD4;
+
+//		 RCC GPIOB Enable (직접 초기화)
+//		RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
+//
+//		// PB1 Output 모드 설정 (MODER = 0b01)
+//		GPIOB->MODER &= ~(0x3 << (1 * 2));
+//		GPIOB->MODER |=  (0x1 << (1 * 2));
+//
+//		// PB1 Output High
+//		GPIOB->ODR |= GPIO_ODR_OD1;
+
 		restored_standby = true;
 	}
   /* USER CODE END 1 */
@@ -167,6 +195,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	char msg[] = "hi\r\n";
 	HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
 
   while (1)
   {
@@ -227,9 +259,11 @@ int main(void)
 //		  HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 		  /*STOP MODE(Low Power)*/
 //		  HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+//		  standby_with_rtc(5);
 
 //		  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);  // 혹시 예전 wakeup 설정 있으면 클리어
 
+//		  HAL_PWREx_EnterSTOP1Mode(PWR_STOPENTRY_WFI);  // STOP2 진입
 		  if(once_flag2 == false)
 		  {
 			  standby_with_rtc(5);//5초가 지나야 이 뒤 코드들이 실행됨
@@ -394,8 +428,8 @@ static void MX_RTC_Init(void)
 
   /* USER CODE END RTC_Init 0 */
 
-  RTC_TimeTypeDef sTime = {0};
-  RTC_DateTypeDef sDate = {0};
+//  RTC_TimeTypeDef sTime = {0};
+//  RTC_DateTypeDef sDate = {0};
 
   /* USER CODE BEGIN RTC_Init 1 */
 
@@ -422,34 +456,35 @@ static void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x0;
-  sTime.Minutes = 0x0;
-  sTime.Seconds = 0x0;
-  sTime.SubSeconds = 0x0;
-  sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-  sTime.StoreOperation = RTC_STOREOPERATION_RESET;
-  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sDate.WeekDay = RTC_WEEKDAY_MONDAY;
-  sDate.Month = RTC_MONTH_JANUARY;
-  sDate.Date = 0x1;
-  sDate.Year = 0x0;
-
-  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Enable the WakeUp
-  */
-  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RTC_Init 2 */
-
+//  sTime.Hours = 0x0;
+//  sTime.Minutes = 0x0;
+//  sTime.Seconds = 0x0;
+//  sTime.SubSeconds = 0x0;
+//  sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+//  sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+//  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  sDate.WeekDay = RTC_WEEKDAY_MONDAY;
+//  sDate.Month = RTC_MONTH_JANUARY;
+//  sDate.Date = 0x1;
+//  sDate.Year = 0x0;
+//
+//  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//
+//  /** Enable the WakeUp
+//  */
+//  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  /* USER CODE BEGIN RTC_Init 2 */
+//  HAL_NVIC_SetPriority(RTC_WKUP_IRQn, 0, 0);
+//  HAL_NVIC_EnableIRQ(RTC_WKUP_IRQn);
   /* USER CODE END RTC_Init 2 */
 
 }
@@ -573,6 +608,7 @@ static void MX_USART1_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
   /* USER CODE END MX_GPIO_Init_1 */
