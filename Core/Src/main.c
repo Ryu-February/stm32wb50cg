@@ -26,6 +26,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include "rgb.h"
+#include "color.h"
+#include "uart.h"
+#include "i2c.h"
 
 //#include "rtc.h"
 /* USER CODE END Includes */
@@ -61,6 +64,9 @@ volatile bool is_sleep_requested = false;
 bool restored_standby = false;
 extern volatile bool uart_enable;
 //static unsigned char once_flag2 = false;
+volatile bool check_color = false;
+color_t detected_left = 0;
+color_t detected_right = 0;
 
 /* USER CODE END PV */
 
@@ -82,9 +88,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == GPIO_PIN_0) // PB0 눌림
     {
-        is_sleep_requested ^= 1; // 0->1 또는 1->0 토글!
+//        is_sleep_requested ^= 1; // 0->1 또는 1->0 토글!
+        check_color = true;
 
     }
+//    else
+//    {
+//    	check_color = false;
+//    }
 }
 
 void standby_with_rtc(uint32_t seconds)
@@ -143,32 +154,30 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM16_Init();
   MX_TIM17_Init();
-  MX_I2C1_Init();
+//  MX_I2C1_Init();
+  i2c_init();
   MX_USART1_UART_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
-
-  rgb_init();
 
   HAL_TIM_Base_Start_IT(&htim16);
   HAL_TIM_Base_Start_IT(&htim17);
   HAL_UART_Init(&huart1);
 
-//  if (restored_standby)  // 스탠바이로부터 복귀한 경우
-//  {
-//	  HAL_Delay(500);
-//	  char msg3[] = "restored\r\n";
-//	  HAL_UART_Transmit(&huart1, (uint8_t *)msg3, strlen(msg3), HAL_MAX_DELAY);
-//
-//  }
+  rgb_init();
+//  bh1745_init(&hi2c1, BH1745_I2C_ADDR_LEFT);
+//  bh1745_init(&hi2c1, BH1745_I2C_ADDR_RIGHT);
+
+  bh1745_init(BH1745_ADDR_LEFT);
+  bh1745_init(BH1745_ADDR_RIGHT);
 
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	char msg[] = "hi\r\n";
-	HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+
+  bh1745_color_data_t left_color, right_color;
 
   while (1)
   {
@@ -176,6 +185,27 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+	  if(check_color == true)
+	  {
+		  left_color = bh1745_read_rgbc(BH1745_ADDR_LEFT);
+		  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
+
+		  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
+		              left_color.red, left_color.green, left_color.blue, left_color.clear);
+
+		  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
+		              right_color.red, right_color.green, right_color.blue, right_color.clear);
+
+		  detected_left =
+				  classify_color(left_color.red, left_color.green, left_color.blue, left_color.clear);
+		  detected_right =
+				  classify_color(right_color.red, right_color.green, right_color.blue, right_color.clear);
+
+		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
+		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
+		  uart_printf("--------------------------------\r\n");
+		  check_color = false;
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -248,7 +278,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00C12166;
+  hi2c1.Init.Timing = 0x106133FF;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -292,8 +322,8 @@ static void MX_RTC_Init(void)
 
   /* USER CODE END RTC_Init 0 */
 
-//  RTC_TimeTypeDef sTime = {0};
-//  RTC_DateTypeDef sDate = {0};
+  RTC_TimeTypeDef sTime = {0};
+  RTC_DateTypeDef sDate = {0};
 
   /* USER CODE BEGIN RTC_Init 1 */
 
@@ -320,33 +350,33 @@ static void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-//  sTime.Hours = 0x0;
-//  sTime.Minutes = 0x0;
-//  sTime.Seconds = 0x0;
-//  sTime.SubSeconds = 0x0;
-//  sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-//  sTime.StoreOperation = RTC_STOREOPERATION_RESET;
-//  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  sDate.WeekDay = RTC_WEEKDAY_MONDAY;
-//  sDate.Month = RTC_MONTH_JANUARY;
-//  sDate.Date = 0x1;
-//  sDate.Year = 0x0;
-//
-//  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//
-//  /** Enable the WakeUp
-//  */
-//  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//  /* USER CODE BEGIN RTC_Init 2 */
+  sTime.Hours = 0x0;
+  sTime.Minutes = 0x0;
+  sTime.Seconds = 0x0;
+  sTime.SubSeconds = 0x0;
+  sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+  sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sDate.WeekDay = RTC_WEEKDAY_MONDAY;
+  sDate.Month = RTC_MONTH_JANUARY;
+  sDate.Date = 0x1;
+  sDate.Year = 0x0;
+
+  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Enable the WakeUp
+  */
+  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
 //  HAL_NVIC_SetPriority(RTC_WKUP_IRQn, 0, 0);
 //  HAL_NVIC_EnableIRQ(RTC_WKUP_IRQn);
   /* USER CODE END RTC_Init 2 */
@@ -472,7 +502,6 @@ static void MX_USART1_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
   /* USER CODE END MX_GPIO_Init_1 */

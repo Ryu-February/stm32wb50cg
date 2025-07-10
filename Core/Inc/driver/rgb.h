@@ -13,7 +13,7 @@
 #include "stm32wbxx_hal.h"
 
 typedef enum
-{
+{/*
 	COLOR_BLACK 		= 0,
 	COLOR_RED			= 1,
 	COLOR_ORANGE		= 2,
@@ -27,7 +27,21 @@ typedef enum
 	COLOR_VIOLET		= 10,
 	COLOR_PINK			= 11,
 	COLOR_WHITE			= 12,
-	COLOR_COUNT			= 13
+	COLOR_COUNT			= 13*/
+
+	COLOR_RED = 0,
+	COLOR_ORANGE,
+	COLOR_YELLOW,
+	COLOR_GREEN,
+	COLOR_BLUE,
+	COLOR_PURPLE,
+	COLOR_LIGHT_GREEN,
+	COLOR_SKY_BLUE,
+	COLOR_PINK,
+	COLOR_BLACK,
+	COLOR_WHITE,
+	COLOR_GRAY,
+	COLOR_COUNT
 } color_t;
 
 typedef struct

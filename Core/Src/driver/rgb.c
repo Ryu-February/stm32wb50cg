@@ -20,7 +20,7 @@ extern TIM_HandleTypeDef htim1;
 
 
 const rgb_led_t led_map[COLOR_COUNT] =
-{
+{/*
 		[COLOR_BLACK]       = {   0,   0,   0 },
 		[COLOR_RED]         = { 255,   0,   0 },
 		[COLOR_ORANGE]      = { 255, 165,   0 },
@@ -33,7 +33,20 @@ const rgb_led_t led_map[COLOR_COUNT] =
 		[COLOR_INDIGO]      = {  75,   0, 130 },
 		[COLOR_VIOLET]      = { 238, 130, 238 },
 		[COLOR_PINK]        = { 255, 105, 180 },
-		[COLOR_WHITE]       = { 255, 255, 255 }
+		[COLOR_WHITE]       = { 255, 255, 255 }*/
+
+		[COLOR_RED]         = { 255,   0,   0 },
+		[COLOR_ORANGE]      = { 255, 165,   0 },
+		[COLOR_YELLOW]      = { 255, 255,   0 },
+		[COLOR_GREEN]       = {   0, 255,   0 },
+		[COLOR_BLUE]        = {   0,   0, 255 },
+		[COLOR_PURPLE]      = { 160,  32, 240 },  // or VIOLET
+		[COLOR_LIGHT_GREEN] = {  26, 255,  26 },
+		[COLOR_SKY_BLUE]    = {  70, 200, 255 },  // LIGHT_BLUE or CYAN mix
+		[COLOR_PINK]        = { 255, 105, 180 },
+		[COLOR_BLACK]       = {   0,   0,   0 },
+		[COLOR_WHITE]       = { 255, 255, 255 },
+		[COLOR_GRAY]        = { 128, 128, 128 }
 };
 
 

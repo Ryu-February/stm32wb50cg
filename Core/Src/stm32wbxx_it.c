@@ -68,7 +68,8 @@ extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
-
+extern color_t detected_left;
+extern color_t detected_right;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -248,7 +249,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   HAL_TIM_IRQHandler(&htim16);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
-  rgb_set_color(i);
+  rgb_set_color(detected_left);
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -262,37 +263,37 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   /* USER CODE END TIM1_TRG_COM_TIM17_IRQn 0 */
   HAL_TIM_IRQHandler(&htim17);
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 1 */
-  if(++timer17_ms >= 30)
-  {
-	  timer17_ms = 0;
-	  switch_valid = true;
-  }
-  else
-  {
-	  switch_valid = false;
-  }
+//  if(++timer17_ms >= 30)
+//  {
+//	  timer17_ms = 0;
+//	  switch_valid = true;
+//  }
+//  else
+//  {
+//	  switch_valid = false;
+//  }
 
 
-  if(++timer17_uart_ms >= 500)
-  {
-	  timer17_uart_ms = 0;
-	  uart_enable = true;
-  }
+//  if(++timer17_uart_ms >= 500)
+//  {
+//	  timer17_uart_ms = 0;
+//	  uart_enable = true;
+//  }
 
-  static int cnt = 0;
-
-
-
-	if(++cnt >= 1000)
-	{
-		cnt = 0;
-		i++;
-
-		if(i > COLOR_COUNT)
-		{
-			i = 0;
-		}
-	}
+//  static int cnt = 0;
+//
+//
+//
+//	if(++cnt >= 1000)
+//	{
+//		cnt = 0;
+//		i++;
+//
+//		if(i > COLOR_COUNT)
+//		{
+//			i = 0;
+//		}
+//	}
   /* USER CODE END TIM1_TRG_COM_TIM17_IRQn 1 */
 }
 
