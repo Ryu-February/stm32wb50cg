@@ -29,6 +29,7 @@
 #include "color.h"
 #include "uart.h"
 #include "i2c.h"
+#include "flash.h"
 
 //#include "rtc.h"
 /* USER CODE END Includes */
@@ -176,6 +177,9 @@ int main(void)
   bh1745_init(BH1745_ADDR_LEFT);
   bh1745_init(BH1745_ADDR_RIGHT);
 
+  load_color_reference_table();
+  debug_print_color_reference_table();
+
 
   /* USER CODE END 2 */
 
@@ -221,6 +225,8 @@ int main(void)
 		  if(!once_flag)
 		  {
 			  uart_printf("bh1745 initialize\r\n");
+			  flash_erase_color_table(BH1745_ADDR_LEFT);
+			  flash_erase_color_table(BH1745_ADDR_RIGHT);
 			  once_flag = 1;
 		  }
 
@@ -256,7 +262,10 @@ int main(void)
 			  if(init_cnt > COLOR_GRAY)
 			  {
 				  cur_mode = 0;
+				  init_cnt = 0;
+				  debug_print_color_reference_table();
 			  }
+
 		  }
 	  }
 //	  else

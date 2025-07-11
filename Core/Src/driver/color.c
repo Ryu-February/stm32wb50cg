@@ -5,13 +5,15 @@
  *      Author: RCY
  */
 
+
+
 #include "i2c.h"
 #include "uart.h"
 #include <math.h>
 #include "color.h"
 #include "rgb.h"
+#include "flash.h"
 
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 //const bh1745_color_data_t reference_colors[COLOR_COUNT] = {
 //    [COLOR_RED]        = {116, 278, 188, 43},
@@ -90,7 +92,7 @@ void save_color_reference(uint8_t sensor_side, color_t color, uint16_t r, uint16
     }
 
     // Flash에 저장!
-//    flash_write_color_reference(sensor_side, color, entry);
+    flash_write_color_reference(sensor_side, color, entry);
 }
 
 rgb_ratio_t get_rgb_ratio(uint16_t r, uint16_t g, uint16_t b)
@@ -175,4 +177,36 @@ const char* color_to_string(color_t color)
         return "UNKNOWN";
 
     return color_names[color];
+}
+
+void load_color_reference_table(void)
+{
+    for (int i = 0; i < COLOR_COUNT; i++)
+    {
+        color_reference_tbl_left[i] = flash_read_color_reference(BH1745_ADDR_LEFT, i);
+        color_reference_tbl_right[i] = flash_read_color_reference(BH1745_ADDR_RIGHT, i);
+    }
+}
+
+void debug_print_color_reference_table(void)
+{
+    uart_printf("=== LEFT COLOR REFERENCE TABLE ===\r\n");
+    for (int i = 0; i < COLOR_COUNT; i++)
+    {
+        rgb_ratio_t r = color_reference_tbl_left[i].ratio;
+        color_t c = color_reference_tbl_left[i].color;
+
+        uart_printf("[%d | %s] [R]: %1.3f, [G]: %1.3f, [B]: %1.3f\r\n",
+                    i, color_to_string(c), r.r_ratio, r.g_ratio, r.b_ratio);
+    }
+
+    uart_printf("=== RIGHT COLOR REFERENCE TABLE ===\r\n");
+    for (int i = 0; i < COLOR_COUNT; i++)
+    {
+        rgb_ratio_t r = color_reference_tbl_right[i].ratio;
+        color_t c = color_reference_tbl_right[i].color;
+
+        uart_printf("[%d | %s] [R]: %1.3f, [G]: %1.3f, [B]: %1.3f\r\n",
+                    i, color_to_string(c), r.r_ratio, r.g_ratio, r.b_ratio);
+    }
 }

@@ -61,5 +61,7 @@ void save_color_reference(uint8_t sensor_side, color_t color, uint16_t r, uint16
 rgb_ratio_t get_rgb_ratio(uint16_t r, uint16_t g, uint16_t b);
 color_t classify_color(uint8_t left_right, uint16_t r, uint16_t g, uint16_t b, uint16_t c);
 const char* color_to_string(color_t color);
+void load_color_reference_table(void);
+void debug_print_color_reference_table(void);
 
 #endif /* INC_DRIVER_COLOR_H_ */
