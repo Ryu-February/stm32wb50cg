@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
 #include "rgb.h"
+#include "color.h"
 //#include "rtc.h"
 /* USER CODE END Includes */
 
@@ -47,8 +48,15 @@
 int i = 0;
 volatile uint32_t timer17_ms = 0;
 volatile uint32_t timer17_uart_ms = 0;
+volatile uint32_t pb0_pressed_time = 0;
+
+volatile unsigned char cur_mode = false;
+
 volatile bool switch_valid = false;
 volatile bool uart_enable = false;
+volatile bool pb0_pressed = false;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -263,16 +271,21 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   /* USER CODE END TIM1_TRG_COM_TIM17_IRQn 0 */
   HAL_TIM_IRQHandler(&htim17);
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 1 */
-//  if(++timer17_ms >= 30)
-//  {
-//	  timer17_ms = 0;
-//	  switch_valid = true;
-//  }
-//  else
-//  {
-//	  switch_valid = false;
-//  }
-
+  if(pb0_pressed == true)
+  {
+	  if(++pb0_pressed_time >= 1000 && cur_mode != MODE_CALIBRATION)
+	  {
+		  cur_mode = MODE_CALIBRATION;
+	  }
+	  else if(++pb0_pressed_time >= 1000 && cur_mode == MODE_CALIBRATION)
+	  {
+		  cur_mode = 0;
+	  }
+  }
+  else
+  {
+	  pb0_pressed_time = 0;
+  }
 
 //  if(++timer17_uart_ms >= 500)
 //  {

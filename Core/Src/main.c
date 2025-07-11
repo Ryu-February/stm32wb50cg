@@ -63,8 +63,13 @@ UART_HandleTypeDef huart1;
 volatile bool is_sleep_requested = false;
 bool restored_standby = false;
 extern volatile bool uart_enable;
+extern volatile bool pb0_pressed;
 //static unsigned char once_flag2 = false;
 volatile bool check_color = false;
+
+volatile bool mode_entry = false;
+
+extern volatile unsigned char cur_mode;
 color_t detected_left = 0;
 color_t detected_right = 0;
 
@@ -89,13 +94,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if (GPIO_Pin == GPIO_PIN_0) // PB0 눌림
     {
 //        is_sleep_requested ^= 1; // 0->1 또는 1->0 토글!
-        check_color = true;
+    	pb0_pressed ^= true;
+
+    	if(pb0_pressed == true)
+		{
+    		check_color = true;
+		}
 
     }
-//    else
-//    {
-//    	check_color = false;
-//    }
 }
 
 void standby_with_rtc(uint32_t seconds)
@@ -154,8 +160,7 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM16_Init();
   MX_TIM17_Init();
-//  MX_I2C1_Init();
-  i2c_init();
+  MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
@@ -185,9 +190,11 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  if(check_color == true)
+
+
+	  if(check_color == true && cur_mode == 0)
 	  {
-		  left_color = bh1745_read_rgbc(BH1745_ADDR_LEFT);
+		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
 		  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
 
 		  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
@@ -197,15 +204,65 @@ int main(void)
 		              right_color.red, right_color.green, right_color.blue, right_color.clear);
 
 		  detected_left =
-				  classify_color(left_color.red, left_color.green, left_color.blue, left_color.clear);
+				  classify_color(BH1745_ADDR_LEFT, left_color.red, left_color.green, left_color.blue, left_color.clear);
 		  detected_right =
-				  classify_color(right_color.red, right_color.green, right_color.blue, right_color.clear);
+				  classify_color(BH1745_ADDR_RIGHT, right_color.red, right_color.green, right_color.blue, right_color.clear);
 
 		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
 		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
 		  uart_printf("--------------------------------\r\n");
 		  check_color = false;
 	  }
+
+	  static unsigned char once_flag = 0;
+
+	  if(cur_mode == MODE_CALIBRATION)
+	  {
+		  if(!once_flag)
+		  {
+			  uart_printf("bh1745 initialize\r\n");
+			  once_flag = 1;
+		  }
+
+		  if(pb0_pressed == false)
+		  {
+			  mode_entry = true;
+		  }
+
+		  if(pb0_pressed == true && mode_entry == true)
+		  {
+			  static uint8_t init_cnt = 0;
+
+			  uart_printf("color set: [%s]\r\n", color_to_string(init_cnt));
+
+
+			  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
+			  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
+
+			  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
+						  left_color.red, left_color.green, left_color.blue, left_color.clear);
+
+			  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
+						  right_color.red, right_color.green, right_color.blue, right_color.clear);
+
+			  save_color_reference(BH1745_ADDR_LEFT, init_cnt, left_color.red, left_color.green, left_color.blue);
+			  save_color_reference(BH1745_ADDR_RIGHT, init_cnt, right_color.red, right_color.green, right_color.blue);
+
+			  uart_printf("--------------------------------\r\n");
+			  init_cnt++;
+
+			  mode_entry = false;
+
+			  if(init_cnt > COLOR_GRAY)
+			  {
+				  cur_mode = 0;
+			  }
+		  }
+	  }
+//	  else
+//	  {
+//		  once_flag = 0;
+//	  }
   }
   /* USER CODE END 3 */
 }
@@ -514,6 +571,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
 
   /*Configure GPIO pins : PA4 PA5 PA6 */
@@ -523,17 +583,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pin : PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  /*Configure GPIO pins : PB2 PB1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/

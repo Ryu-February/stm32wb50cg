@@ -5,6 +5,7 @@
 *.mxproject
 *.project
 .settings/
+.metadata
 .vscode/
 
 # STM32CubeIDE build artifacts

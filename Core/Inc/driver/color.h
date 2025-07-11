@@ -12,6 +12,9 @@
 #include "stm32wbxx_hal.h"
 #include "rgb.h"
 
+
+#define MODE_CALIBRATION	1
+
 #define BH1745_ADDR_LEFT        	0x38 // 7bit << 1
 #define BH1745_ADDR_RIGHT      		0x39 // 7bit << 1
 
@@ -53,7 +56,10 @@ void bh1745_init(uint8_t dev_addr);
 uint16_t bh1745_read_u16(uint8_t dev_addr, uint8_t lsb_reg);
 bh1745_color_data_t bh1745_read_rgbc(uint8_t dev_addr);
 bh1745_color_data_t bh1745_read_rgbc(uint8_t dev_addr);
-color_t classify_color(uint16_t r, uint16_t g, uint16_t b, uint16_t c);
+
+void save_color_reference(uint8_t sensor_side, color_t color, uint16_t r, uint16_t g, uint16_t b);
+rgb_ratio_t get_rgb_ratio(uint16_t r, uint16_t g, uint16_t b);
+color_t classify_color(uint8_t left_right, uint16_t r, uint16_t g, uint16_t b, uint16_t c);
 const char* color_to_string(color_t color);
 
 #endif /* INC_DRIVER_COLOR_H_ */

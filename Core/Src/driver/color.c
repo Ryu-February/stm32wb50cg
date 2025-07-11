@@ -28,20 +28,8 @@
 //    [COLOR_GRAY]       = {110, 336, 244, 43}
 //};
 
-const reference_entry_t color_reference_table[] = {
-    {{0.1607f, 0.4281f, 0.4111f}, COLOR_RED},
-    {{0.1689f, 0.4400f, 0.3911f}, COLOR_ORANGE},
-    {{0.1608f, 0.4937f, 0.3456f}, COLOR_YELLOW},
-	{{0.1239f, 0.4784f, 0.3977f}, COLOR_LIGHT_GREEN},
-    {{0.1213f, 0.4656f, 0.4132f}, COLOR_GREEN},
-    {{0.1065f, 0.4233f, 0.4702f}, COLOR_SKY_BLUE},
-    {{0.1141f, 0.4225f, 0.4634f}, COLOR_BLUE},
-    {{0.1259f, 0.4187f, 0.4553f}, COLOR_PURPLE},
-    {{0.1589f, 0.4121f, 0.4290f}, COLOR_PINK},
-	{{0.1203f, 0.4491f, 0.4305f}, COLOR_BLACK},
-	{{0.1241f, 0.4510f, 0.4248f}, COLOR_WHITE},
-	{{0.1242f, 0.4497f, 0.4261f}, COLOR_GRAY},
-};
+reference_entry_t color_reference_tbl_left[COLOR_COUNT];
+reference_entry_t color_reference_tbl_right[COLOR_COUNT];
 
 
 
@@ -85,6 +73,26 @@ bh1745_color_data_t bh1745_read_rgbc(uint8_t dev_addr)
     return color;
 }
 
+
+void save_color_reference(uint8_t sensor_side, color_t color, uint16_t r, uint16_t g, uint16_t b)
+{
+    rgb_ratio_t ratio = get_rgb_ratio(r, g, b);
+
+    reference_entry_t entry = { .ratio = ratio, .color = color };
+
+    if (sensor_side == BH1745_ADDR_LEFT)
+    {
+        color_reference_tbl_left[color] = entry;
+    }
+    else
+    {
+        color_reference_tbl_right[color] = entry;
+    }
+
+    // Flash에 저장!
+//    flash_write_color_reference(sensor_side, color, entry);
+}
+
 rgb_ratio_t get_rgb_ratio(uint16_t r, uint16_t g, uint16_t b)
 {
     float total = (float)r + g + b;
@@ -102,7 +110,7 @@ rgb_ratio_t get_rgb_ratio(uint16_t r, uint16_t g, uint16_t b)
     return result;
 }
 
-color_t classify_color(uint16_t r, uint16_t g, uint16_t b, uint16_t c)
+color_t classify_color(uint8_t left_right, uint16_t r, uint16_t g, uint16_t b, uint16_t c)
 {
 	const float w_r = 1.2f;  // R 가중치
 	const float w_g = 1.0f;  // G 가중치
@@ -113,20 +121,34 @@ color_t classify_color(uint16_t r, uint16_t g, uint16_t b, uint16_t c)
 	float min_dist = 1e9;
 	color_t best_match = COLOR_GRAY;
 
-	for (int i = 0; i < sizeof(color_reference_table) / sizeof(reference_entry_t); i++)
-	{
-		float dr = input.r_ratio - color_reference_table[i].ratio.r_ratio;
-		float dg = input.g_ratio - color_reference_table[i].ratio.g_ratio;
-		float db = input.b_ratio - color_reference_table[i].ratio.b_ratio;
+    const reference_entry_t* table;
+    int table_size;
 
-		float dist = w_r * dr * dr + w_g * dg * dg + w_b * db * db;
+    if (left_right == BH1745_ADDR_LEFT)  // LEFT
+    {
+        table = color_reference_tbl_left;
+        table_size = sizeof(color_reference_tbl_left) / sizeof(reference_entry_t);
+    }
+    else // RIGHT
+    {
+        table = color_reference_tbl_right;
+        table_size = sizeof(color_reference_tbl_right) / sizeof(reference_entry_t);
+    }
 
-		if (dist < min_dist)
-		{
-			min_dist = dist;
-			best_match = color_reference_table[i].color;
-		}
-	}
+    for (int i = 0; i < table_size; i++)
+    {
+        float dr = input.r_ratio - table[i].ratio.r_ratio;
+        float dg = input.g_ratio - table[i].ratio.g_ratio;
+        float db = input.b_ratio - table[i].ratio.b_ratio;
+
+        float dist = w_r * dr * dr + w_g * dg * dg + w_b * db * db;
+
+        if (dist < min_dist)
+        {
+            min_dist = dist;
+            best_match = table[i].color;
+        }
+    }
 
 	return best_match;
 }
