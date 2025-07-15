@@ -15,6 +15,8 @@
 #define RIGHT       1
 #define FORWARD     0
 #define REVERSE     1
+#define TURN_LEFT   2
+#define TURN_RIGHT  3
 
 #define SAFE_MAX_RPM    1200
 #define MAX_SPEED       100
@@ -41,24 +43,21 @@
 
 typedef struct StepMotor
 {
-  GPIO_TypeDef* AIN1_Port;
-  uint16_t AIN1_Pin;
-  GPIO_TypeDef* AIN2_Port;
-  uint16_t AIN2_Pin;
-  GPIO_TypeDef* BIN1_Port;
-  uint16_t BIN1_Pin;
-  GPIO_TypeDef* BIN2_Port;
-  uint16_t BIN2_Pin;
+  GPIO_TypeDef* in1_port; uint16_t in1_pin;
+  GPIO_TypeDef* in2_port; uint16_t in2_pin;
+  GPIO_TypeDef* in3_port; uint16_t in3_pin;
+  GPIO_TypeDef* in4_port; uint16_t in4_pin;
 
+  uint8_t dir;
   uint8_t step_idx;
   uint32_t period_us;
   uint32_t prev_time_us;
 
+  void (*init)(struct StepMotor*);
   void (*forward)(struct StepMotor*);
   void (*reverse)(struct StepMotor*);
   void (*brake)(struct StepMotor*);
   void (*slide)(struct StepMotor*);
-
 } StepMotor;
 
 typedef struct
@@ -69,15 +68,46 @@ typedef struct
   uint8_t vB;
 } MicroStepMotor;
 
-void sm_init(StepMotor *m);
-void sm_forward(StepMotor *m);
-void sm_reverse(StepMotor *m);
-void sm_brake(StepMotor *m);
-void sm_slide(StepMotor *m);
+void step_init(StepMotor *m);
+void step_forward(StepMotor *m);
+void step_reverse(StepMotor *m);
+void step_brake(StepMotor *m);
+void step_slide(StepMotor *m);
 
-void roe_sm_init(void);
+#define DEFINE_STEP_MOTOR(name,	\
+in1p, in1, 						\
+in2p, in2, 						\
+in3p, in3, 						\
+in4p, in4) 						\
+								\
+StepMotor name = 				\
+{ 								\
+	.in1_port = in1p, 			\
+	.in1_pin  = in1, 			\
+								\
+	.in2_port = in2p,			\
+	.in2_pin  = in2, 			\
+								\
+	.in3_port = in3p, 			\
+	.in3_pin  = in3, 			\
+								\
+	.in4_port = in4p,			\
+	.in4_pin  = in4, 			\
+								\
+	.step_idx  = 0, 			\
+								\
+	.init      = step_init,		\
+	.slide     = step_slide, 	\
+	.forward   = step_forward,	\
+	.reverse   = step_reverse,	\
+	.brake     = step_brake		\
+};
+
+void step_init_all(void);
 void roe_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
 void ms_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
+void step_test(unsigned char operation);
 
+void step_idx_init(void);
 
 #endif /* INC_DRIVER_STEP_H_ */

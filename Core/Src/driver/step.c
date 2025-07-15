@@ -6,146 +6,191 @@
  */
 
 
+#include "uart.h"
 #include "step.h"
 
-extern TIM_HandleTypeDef htim16;  // 10kHz interrupt for microstep PWM
+extern TIM_HandleTypeDef htim2;  // 10kHz interrupt for microstep PWM
 
-static const uint8_t STEP_TABLE[8][4] = {
-    {1,0,1,0}, {0,0,1,0}, {0,1,1,0}, {0,1,0,0},
-    {0,1,0,1}, {0,0,0,1}, {1,0,0,1}, {1,0,0,0}
+/*                            Motor(15BY25-119)                         */
+/*                           Motor driver(A3916)                        */
+
+/************************************************************************/
+/*                       MCU  |     NET    | DRIVER                     */
+/*                       PA0 -> MOT_L_IN1 ->  IN1                       */
+/*                       PA1 -> MOT_L_IN2 ->  IN2                       */
+/*                       PA2 -> MOT_L_IN3 ->  IN3                       */
+/*                       PA3 -> MOT_L_IN4 ->  IN4                       */
+/*                                                                      */
+/*                       PB4 -> MOT_R_IN1 ->  IN1                       */
+/*                       PB5 -> MOT_R_IN2 ->  IN2                       */
+/*                       PB6 -> MOT_R_IN3 ->  IN3                       */
+/*                       PB7 -> MOT_R_IN4 ->  IN4                       */
+/************************************************************************/
+
+/*
+ * A3916 Stepper Motor Operation Table (Half Step + Full Step)
+ *
+ * IN1 IN2 IN3 IN4 | OUT1A OUT1B OUT2A OUT2B | Function
+ * --------------------------------------------------------
+ *  0   0   0   0  |  Off   Off   Off   Off   | Disabled
+ *  1   0   1   0  |  High  Low   High  Low   | Full Step 1 / 	½ Step 1
+ *  0   0   1   0  |  Off   Off   High  Low   |             	½ Step 2
+ *  0   1   1   0  |  Low   High  High  Low   | Full Step 2 /	½ Step 3
+ *  0   1   0   0  |  Low   High  Off   Off   |             	½ Step 4
+ *  0   1   0   1  |  Low   High  Low   High  | Full Step 3 / 	½ Step 5
+ *  0   0   0   1  |  Off   Off   Low   High  |             	½ Step 6
+ *  1   0   0   1  |  High  Low   Low   High  | Full Step 4 / 	½ Step 7
+ *  1   0   0   0  |  High  Low   Off   Off   |             	½ Step 8
+ */
+
+//
+//StepMotor motor_l = {
+//  .in1_port = GPIOA, .in1_pin = GPIO_PIN_0,
+//  .in2_port = GPIOA, .in2_pin = GPIO_PIN_1,
+//  .in3_port = GPIOA, .in3_pin = GPIO_PIN_2,
+//  .in4_port = GPIOA, .in4_pin = GPIO_PIN_3,
+//};
+//
+//StepMotor motor_r = {
+//  .in1_port = GPIOB, .in1_pin = GPIO_PIN_4,
+//  .in2_port = GPIOB, .in2_pin = GPIO_PIN_5,
+//  .in3_port = GPIOB, .in3_pin = GPIO_PIN_6,
+//  .in4_port = GPIOB, .in4_pin = GPIO_PIN_7,
+//};
+
+DEFINE_STEP_MOTOR(step_motor_left,
+	GPIOA, GPIO_PIN_0,   // IN1: PA0
+	GPIOA, GPIO_PIN_1,   // IN2: PA1
+	GPIOA, GPIO_PIN_2,   // IN3: PA2
+	GPIOA, GPIO_PIN_3    // IN4: PA3
+);
+
+DEFINE_STEP_MOTOR(step_motor_right,
+	GPIOB, GPIO_PIN_4,   // IN1: PB4
+	GPIOB, GPIO_PIN_5,   // IN2: PB5
+	GPIOB, GPIO_PIN_6,   // IN3: PB6
+	GPIOB, GPIO_PIN_7    // IN4: PB7
+);
+
+static const uint8_t step_table[8][4] = {
+  {1,0,1,0}, {0,0,1,0}, {0,1,1,0}, {0,1,0,0},
+  {0,1,0,1}, {0,0,0,1}, {1,0,0,1}, {1,0,0,0}
 };
 
-static const uint8_t MICRO_TABLE[16][2] = {
-    {128, 255}, {180, 240}, {224, 200}, {253, 144},
-    {255, 80}, {238, 28}, {200, 2}, {144, 0},
-    {80, 4}, {28, 28}, {2, 80}, {0, 144},
-    {4, 200}, {28, 240}, {80, 255}, {144, 253}
-};
-
-StepMotor motor_l = {
-  .AIN1_Port = GPIOA, .AIN1_Pin = GPIO_PIN_0,
-  .AIN2_Port = GPIOA, .AIN2_Pin = GPIO_PIN_1,
-  .BIN1_Port = GPIOA, .BIN1_Pin = GPIO_PIN_2,
-  .BIN2_Port = GPIOA, .BIN2_Pin = GPIO_PIN_3,
-};
-
-StepMotor motor_r = {
-  .AIN1_Port = GPIOB, .AIN1_Pin = GPIO_PIN_4,
-  .AIN2_Port = GPIOB, .AIN2_Pin = GPIO_PIN_5,
-  .BIN1_Port = GPIOB, .BIN1_Pin = GPIO_PIN_6,
-  .BIN2_Port = GPIOB, .BIN2_Pin = GPIO_PIN_7,
-};
-
-MicroStepMotor ms_l = { .base = &motor_l, .micro_idx = 0 };
-MicroStepMotor ms_r = { .base = &motor_r, .micro_idx = 8 };
-
-volatile uint8_t ms_pwm_cnt = 0;
-
-static void apply_coils(StepMotor *m)
+static void apply_step(StepMotor *m)
 {
-  const uint8_t* seq = STEP_TABLE[m->step_idx];
-  HAL_GPIO_WritePin(m->AIN1_Port, m->AIN1_Pin, seq[0]);
-  HAL_GPIO_WritePin(m->AIN2_Port, m->AIN2_Pin, seq[1]);
-  HAL_GPIO_WritePin(m->BIN1_Port, m->BIN1_Pin, seq[2]);
-  HAL_GPIO_WritePin(m->BIN2_Port, m->BIN2_Pin, seq[3]);
+  HAL_GPIO_WritePin(m->in1_port, m->in1_pin, step_table[m->step_idx][0]);
+  HAL_GPIO_WritePin(m->in2_port, m->in2_pin, step_table[m->step_idx][1]);
+  HAL_GPIO_WritePin(m->in3_port, m->in3_pin, step_table[m->step_idx][2]);
+  HAL_GPIO_WritePin(m->in4_port, m->in4_pin, step_table[m->step_idx][3]);
 }
 
-static void apply_ms_coils(StepMotor *m, uint8_t vA, uint8_t vB)
-{
-  HAL_GPIO_WritePin(m->AIN1_Port, m->AIN1_Pin, ms_pwm_cnt < vA);
-  HAL_GPIO_WritePin(m->AIN2_Port, m->AIN2_Pin, ms_pwm_cnt < (MICRO_MAX_PWM - vA));
-  HAL_GPIO_WritePin(m->BIN1_Port, m->BIN1_Pin, ms_pwm_cnt < vB);
-  HAL_GPIO_WritePin(m->BIN2_Port, m->BIN2_Pin, ms_pwm_cnt < (MICRO_MAX_PWM - vB));
-}
-
-void sm_init(StepMotor *m)
+void step_init(StepMotor *m)
 {
   m->step_idx = 0;
-  m->forward = sm_forward;
-  m->reverse = sm_reverse;
-  m->brake = sm_brake;
-  m->slide = sm_slide;
+  m->prev_time_us = 0;
+  m->dir = (m == &step_motor_left) ? LEFT : RIGHT;
+
+  m->forward = (m == &step_motor_left) ? step_forward : step_reverse;
+  m->reverse = (m == &step_motor_left) ? step_reverse : step_forward;
+//  m->forward = step_forward;
+//  m->reverse = step_reverse;
+  m->brake   = step_brake;
+  m->slide   = step_slide;
 }
 
-void sm_forward(StepMotor *m)
+void step_forward(StepMotor *m)
 {
-  apply_coils(m);
+  apply_step(m);
   m->step_idx = (m->step_idx + 1) & STEP_MASK;
 }
 
-void sm_reverse(StepMotor *m)
+void step_reverse(StepMotor *m)
 {
-  apply_coils(m);
-  m->step_idx = (m->step_idx - 1 + (STEP_MASK+1)) & STEP_MASK;
+  apply_step(m);
+  m->step_idx = (m->step_idx - 1) & STEP_MASK;
 }
 
-void sm_brake(StepMotor *m)
+void step_brake(StepMotor *m)
 {
-  HAL_GPIO_WritePin(m->AIN1_Port, m->AIN1_Pin, 1);
-  HAL_GPIO_WritePin(m->AIN2_Port, m->AIN2_Pin, 1);
-  HAL_GPIO_WritePin(m->BIN1_Port, m->BIN1_Pin, 1);
-  HAL_GPIO_WritePin(m->BIN2_Port, m->BIN2_Pin, 1);
+  HAL_GPIO_WritePin(m->in1_port, m->in1_pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(m->in2_port, m->in2_pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(m->in3_port, m->in3_pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(m->in4_port, m->in4_pin, GPIO_PIN_SET);
 }
 
-void sm_slide(StepMotor *m)
+void step_slide(StepMotor *m)
 {
-  HAL_GPIO_WritePin(m->AIN1_Port, m->AIN1_Pin, 0);
-  HAL_GPIO_WritePin(m->AIN2_Port, m->AIN2_Pin, 0);
-  HAL_GPIO_WritePin(m->BIN1_Port, m->BIN1_Pin, 0);
-  HAL_GPIO_WritePin(m->BIN2_Port, m->BIN2_Pin, 0);
+  HAL_GPIO_WritePin(m->in1_port, m->in1_pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(m->in2_port, m->in2_pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(m->in3_port, m->in3_pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(m->in4_port, m->in4_pin, GPIO_PIN_RESET);
 }
 
-static uint32_t rpm_to_period(uint16_t rpm)
+uint32_t rpm_to_period(uint16_t rpm)
 {
-  if (rpm == 0) return 0xFFFFFFFF;
+  if (rpm == 0) rpm = 1;
+  if (rpm > SAFE_MAX_RPM) rpm = SAFE_MAX_RPM;
   return 60000000UL / (rpm * STEP_PER_REV);
 }
 
-void roe_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir)
+uint32_t pwm_to_rpm(uint8_t pwm)
 {
-  StepMotor *m = (m_pin == LEFT) ? &motor_l : &motor_r;
+  if (pwm > MAX_SPEED) pwm = MAX_SPEED;
+  return (uint32_t)pwm * SAFE_MAX_RPM / MAX_SPEED;
+}
+
+void step_operate(StepMotor *m, uint8_t speed, uint8_t dir)
+{
   if (speed == 0)
   {
     m->brake(m);
     return;
   }
-  uint32_t rpm = speed * SAFE_MAX_RPM / MAX_SPEED;
-  m->period_us = rpm_to_period(rpm);
 
-  uint32_t now = __HAL_TIM_GET_COUNTER(&htim16);
-  if (now - m->prev_time_us >= m->period_us)
+  m->period_us = rpm_to_period(pwm_to_rpm(speed));
+  uint32_t now = __HAL_TIM_GET_COUNTER(&htim2);  // must be 1us timer
+
+  if ((now - m->prev_time_us) >= m->period_us)
   {
     m->prev_time_us = now;
-    (m_dir == FORWARD ? m->forward : m->reverse)(m);
+    (dir == FORWARD ? m->forward : m->reverse)(m);
   }
 }
 
-void ms_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir)
+void step_init_all(void)
 {
-  MicroStepMotor *m = (m_pin == LEFT) ? &ms_l : &ms_r;
-  if (speed == 0)
-  {
-    m->base->brake(m->base);
-    return;
-  }
-
-  m->base->period_us = rpm_to_period(speed * SAFE_MAX_RPM / MAX_SPEED);
-  uint32_t now = __HAL_TIM_GET_COUNTER(&htim16);
-  if (now - m->base->prev_time_us < m->base->period_us) return;
-  m->base->prev_time_us = now;
-
-  m->micro_idx = (m->micro_idx + (m_dir == FORWARD ? 1 : STEP_MASK)) & STEP_MASK;
-  m->vA = MICRO_TABLE[m->micro_idx][0];
-  m->vB = MICRO_TABLE[m->micro_idx][1];
+	step_motor_left.init(&step_motor_left);
+	step_motor_right.init(&step_motor_right);
 }
 
-// 💥 Timer interrupt (10kHz or faster!)
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void step_idx_init(void)
 {
-  if (htim->Instance == TIM16)
-  {
-    ms_pwm_cnt = (ms_pwm_cnt + 1) % MICRO_MAX_PWM;
-    apply_ms_coils(ms_l.base, ms_l.vA, ms_l.vB);
-    apply_ms_coils(ms_r.base, ms_r.vA, ms_r.vB);
-  }
+	step_motor_left.step_idx = 0;
+	step_motor_right.step_idx = 0;
 }
+
+void step_test(unsigned char operation)
+{
+	if(operation == FORWARD)
+	{
+		step_motor_left.forward(&step_motor_left);
+		step_motor_right.forward(&step_motor_right);
+	}
+	else if(operation == REVERSE)
+	{
+		step_motor_left.reverse(&step_motor_left);
+		step_motor_right.reverse(&step_motor_right);
+	}
+	else if(operation == TURN_LEFT)
+	{
+		step_motor_left.reverse(&step_motor_left);
+		step_motor_right.forward(&step_motor_right);
+	}
+	else if(operation == TURN_RIGHT)
+	{
+		step_motor_left.forward(&step_motor_left);
+		step_motor_right.reverse(&step_motor_right);
+	}
+}
+

@@ -30,6 +30,7 @@
 #include "uart.h"
 #include "i2c.h"
 #include "flash.h"
+#include "step.h"
 
 //#include "rtc.h"
 /* USER CODE END Includes */
@@ -54,6 +55,7 @@ I2C_HandleTypeDef hi2c1;
 
 RTC_HandleTypeDef hrtc;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
 
@@ -71,9 +73,8 @@ volatile bool check_color = false;
 volatile bool mode_entry = false;
 
 extern volatile unsigned char cur_mode;
-color_t detected_left = 0;
-color_t detected_right = 0;
-
+color_t detected_left = COLOR_BLACK;
+color_t detected_right = COLOR_BLACK;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,6 +85,7 @@ static void MX_TIM17_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RTC_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -164,6 +166,7 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_RTC_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_Base_Start_IT(&htim16);
@@ -171,11 +174,12 @@ int main(void)
   HAL_UART_Init(&huart1);
 
   rgb_init();
-//  bh1745_init(&hi2c1, BH1745_I2C_ADDR_LEFT);
-//  bh1745_init(&hi2c1, BH1745_I2C_ADDR_RIGHT);
 
   bh1745_init(BH1745_ADDR_LEFT);
   bh1745_init(BH1745_ADDR_RIGHT);
+
+  step_init_all();
+
 
   load_color_reference_table();
   debug_print_color_reference_table();
@@ -188,11 +192,53 @@ int main(void)
 
   bh1745_color_data_t left_color, right_color;
 
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  if(detected_left == COLOR_RED)
+	  {
+		  HAL_Delay(500);
+		  for(int i = 0; i < 200; i ++)
+		  {
+			  step_test(FORWARD);
+			  HAL_Delay(1);
+		  }
+		  detected_left = COLOR_BLACK;
+	  }
+	  else if(detected_left == COLOR_ORANGE)
+	  {
+		  HAL_Delay(500);
+		  for(int i = 0; i < 200; i ++)
+		  {
+			  step_test(REVERSE);
+			  HAL_Delay(1);
+		  }
+		  detected_left = COLOR_BLACK;
+	  }
+	  else if(detected_left == COLOR_YELLOW)
+	  {
+		  HAL_Delay(500);
+		  for(int i = 0; i < 200; i ++)
+		  {
+			  step_test(TURN_LEFT);
+			  HAL_Delay(1);
+		  }
+		  detected_left = COLOR_BLACK;
+	  }
+	  else if(detected_left == COLOR_GREEN)
+	  {
+		  HAL_Delay(500);
+		  for(int i = 0; i < 200; i ++)
+		  {
+			  step_test(TURN_RIGHT);
+			  HAL_Delay(1);
+		  }
+		  detected_left = COLOR_BLACK;
+	  }
 
 
 
@@ -450,6 +496,58 @@ static void MX_RTC_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 63;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 4294967295;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief TIM16 Initialization Function
   * @param None
   * @retval None
@@ -577,8 +675,11 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4
+                          |GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
@@ -587,18 +688,18 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
                           |GPIO_PIN_7, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA4 PA5 PA6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
+  /*Configure GPIO pins : PA0 PA4 PA5 PA6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PA1 PA2 PA3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA7 */
