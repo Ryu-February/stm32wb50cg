@@ -6,7 +6,6 @@
  */
 
 
-#include "uart.h"
 #include "step.h"
 
 extern TIM_HandleTypeDef htim2;  // 10kHz interrupt for microstep PWM
@@ -72,17 +71,61 @@ DEFINE_STEP_MOTOR(step_motor_right,
 	GPIOB, GPIO_PIN_7    // IN4: PB7
 );
 
+#if (_USE_STEP_MODE == _STEP_MODE_HALF)
 static const uint8_t step_table[8][4] = {
-  {1,0,1,0}, {0,0,1,0}, {0,1,1,0}, {0,1,0,0},
-  {0,1,0,1}, {0,0,0,1}, {1,0,0,1}, {1,0,0,0}
+	{1,0,1,0},
+	{0,0,1,0},
+	{0,1,1,0},
+	{0,1,0,0},
+	{0,1,0,1},
+	{0,0,0,1},
+	{1,0,0,1},
+	{1,0,0,0}
 };
+#elif(_USE_STEP_MODE == _STEP_MODE_FULL)
+
+static const uint8_t step_table[4][4] = {
+	{1,0,1,0},  // A+ & B+
+	{0,1,1,0},  // A- & B+
+	{0,1,0,1},  // A- & B-
+	{1,0,0,1},  // A+ & B-
+};
+
+#elif(_USE_STEP_MODE == _STEP_MODE_MICRO)
+
+const uint8_t step_table[32] = {
+  128, 153, 178, 201, 222, 239, 250, 255,
+  255, 250, 239, 222, 201, 178, 153, 128,
+  103, 78,  55,  34,  17,  6,   1,   0,
+  0,   1,   6,   17,  34,  55,  78, 103
+};
+
+#endif
+
+
+
 
 static void apply_step(StepMotor *m)
 {
+//  HAL_GPIO_WritePin(m->in1_port, m->in1_pin, step_table[m->step_idx][0]);
+//  HAL_GPIO_WritePin(m->in2_port, m->in2_pin, step_table[m->step_idx][1]);
+//  HAL_GPIO_WritePin(m->in3_port, m->in3_pin, step_table[m->step_idx][2]);
+//  HAL_GPIO_WritePin(m->in4_port, m->in4_pin, step_table[m->step_idx][3]);
+//
+#if (_USE_STEP_MODE == _STEP_MODE_MICRO)
+  m->vA = step_table[m->step_idx];
+  m->vB = step_table[(m->step_idx + (STEP_MASK >> 2)) & STEP_MASK];
+
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, m->vA);
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 255 - m->vA);
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, m->vB);
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 255 - m->vB);
+#else
   HAL_GPIO_WritePin(m->in1_port, m->in1_pin, step_table[m->step_idx][0]);
   HAL_GPIO_WritePin(m->in2_port, m->in2_pin, step_table[m->step_idx][1]);
   HAL_GPIO_WritePin(m->in3_port, m->in3_pin, step_table[m->step_idx][2]);
   HAL_GPIO_WritePin(m->in4_port, m->in4_pin, step_table[m->step_idx][3]);
+#endif
 }
 
 void step_init(StepMotor *m)
@@ -93,8 +136,6 @@ void step_init(StepMotor *m)
 
   m->forward = (m == &step_motor_left) ? step_forward : step_reverse;
   m->reverse = (m == &step_motor_left) ? step_reverse : step_forward;
-//  m->forward = step_forward;
-//  m->reverse = step_reverse;
   m->brake   = step_brake;
   m->slide   = step_slide;
 }
@@ -192,5 +233,50 @@ void step_test(unsigned char operation)
 		step_motor_left.forward(&step_motor_left);
 		step_motor_right.reverse(&step_motor_right);
 	}
+
+
+}
+
+void step_stop(void)
+{
+	step_motor_left.slide(&step_motor_left);
+	step_motor_right.slide(&step_motor_right);
+}
+
+
+void step_run(unsigned char operation)
+{
+    uint32_t now = __HAL_TIM_GET_COUNTER(&htim2);
+    uint32_t prev_time = 0;
+    uint32_t period_us = 0;
+
+	prev_time = (step_motor_left.dir == LEFT) ? step_motor_left.prev_time_us : step_motor_right.prev_time_us;
+	period_us = (step_motor_left.dir == LEFT) ? step_motor_left.period_us : step_motor_right.period_us;
+
+    if ((now - prev_time) >= period_us)
+    {
+    	step_motor_left.prev_time_us = now;
+
+        if(operation == FORWARD)
+		{
+			step_motor_left.forward(&step_motor_left);
+			step_motor_right.forward(&step_motor_right);
+		}
+		else if(operation == REVERSE)
+		{
+			step_motor_left.reverse(&step_motor_left);
+			step_motor_right.reverse(&step_motor_right);
+		}
+		else if(operation == TURN_LEFT)
+		{
+			step_motor_left.reverse(&step_motor_left);
+			step_motor_right.forward(&step_motor_right);
+		}
+		else if(operation == TURN_RIGHT)
+		{
+			step_motor_left.forward(&step_motor_left);
+			step_motor_right.reverse(&step_motor_right);
+		}
+    }
 }
 

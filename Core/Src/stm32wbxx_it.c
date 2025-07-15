@@ -275,13 +275,15 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 1 */
   if(pb0_pressed == true)
   {
-	  if(++pb0_pressed_time >= 1000 && cur_mode != MODE_CALIBRATION)
+	  if(++pb0_pressed_time >= 1500 && cur_mode != MODE_CALIBRATION)
 	  {
 		  cur_mode = MODE_CALIBRATION;
+		  pb0_pressed_time = 0;
 	  }
-	  else if(++pb0_pressed_time >= 1000 && cur_mode == MODE_CALIBRATION)
+	  else if(++pb0_pressed_time >= 1500 && cur_mode == MODE_CALIBRATION)
 	  {
 		  cur_mode = 0;
+		  pb0_pressed_time = 0;
 	  }
   }
   else
@@ -309,6 +311,7 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
 //			i = 0;
 //		}
 //	}
+
   /* USER CODE END TIM1_TRG_COM_TIM17_IRQn 1 */
 }
 

@@ -24,20 +24,20 @@
 
 #define MICRO_MAX_PWM   255
 
-#define STEP_MODE_FULL  0
-#define STEP_MODE_HALF  1
-#define STEP_MODE_MICRO 2
+#define _STEP_MODE_FULL  0
+#define _STEP_MODE_HALF  1
+#define _STEP_MODE_MICRO 2
 
-#define USE_STEP_MODE   STEP_MODE_HALF   // 변경 가능: FULL, HALF, MICRO
+#define _USE_STEP_MODE   _STEP_MODE_MICRO   // 변경 가능: FULL, HALF, MICRO
 
-#if (USE_STEP_MODE == STEP_MODE_HALF)
+#if (_USE_STEP_MODE == _STEP_MODE_HALF)
   #define STEP_MASK     0x07
   #define STEP_PER_REV  40
-#elif (USE_STEP_MODE == STEP_MODE_FULL)
+#elif (_USE_STEP_MODE == _STEP_MODE_FULL)
   #define STEP_MASK     0x03
   #define STEP_PER_REV  20
-#elif (USE_STEP_MODE == STEP_MODE_MICRO)
-  #define STEP_MASK     0x0F
+#elif (_USE_STEP_MODE == _STEP_MODE_MICRO)
+  #define STEP_MASK     0x1F
   #define STEP_PER_REV  80
 #endif
 
@@ -52,6 +52,8 @@ typedef struct StepMotor
   uint8_t step_idx;
   uint32_t period_us;
   uint32_t prev_time_us;
+
+  uint8_t vA, vB;      // for micro step
 
   void (*init)(struct StepMotor*);
   void (*forward)(struct StepMotor*);
@@ -109,5 +111,7 @@ void ms_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
 void step_test(unsigned char operation);
 
 void step_idx_init(void);
+void step_stop(void);
+void step_run(unsigned char operation);
 
 #endif /* INC_DRIVER_STEP_H_ */

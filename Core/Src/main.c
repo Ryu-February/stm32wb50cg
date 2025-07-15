@@ -202,41 +202,45 @@ int main(void)
 	  if(detected_left == COLOR_RED)
 	  {
 		  HAL_Delay(500);
-		  for(int i = 0; i < 200; i ++)
+		  for(int i = 0; i < 100; i ++)
 		  {
-			  step_test(FORWARD);
-			  HAL_Delay(1);
+			  step_run(FORWARD);
+			  HAL_Delay(3);
 		  }
+		  step_stop();
 		  detected_left = COLOR_BLACK;
 	  }
 	  else if(detected_left == COLOR_ORANGE)
 	  {
 		  HAL_Delay(500);
-		  for(int i = 0; i < 200; i ++)
+		  for(int i = 0; i < 100; i ++)
 		  {
 			  step_test(REVERSE);
-			  HAL_Delay(1);
+			  HAL_Delay(3);
 		  }
+		  step_stop();
 		  detected_left = COLOR_BLACK;
 	  }
 	  else if(detected_left == COLOR_YELLOW)
 	  {
 		  HAL_Delay(500);
-		  for(int i = 0; i < 200; i ++)
+		  for(int i = 0; i < 100; i ++)
 		  {
 			  step_test(TURN_LEFT);
-			  HAL_Delay(1);
+			  HAL_Delay(3);
 		  }
+		  step_stop();
 		  detected_left = COLOR_BLACK;
 	  }
 	  else if(detected_left == COLOR_GREEN)
 	  {
 		  HAL_Delay(500);
-		  for(int i = 0; i < 200; i ++)
+		  for(int i = 0; i < 100; i ++)
 		  {
 			  step_test(TURN_RIGHT);
-			  HAL_Delay(1);
+			  HAL_Delay(2);
 		  }
+		  step_stop();
 		  detected_left = COLOR_BLACK;
 	  }
 
