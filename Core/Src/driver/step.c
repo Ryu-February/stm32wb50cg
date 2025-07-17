@@ -5,9 +5,10 @@
  *      Author: RCY
  */
 
-
+#include "uart.h"
 #include "step.h"
 
+extern volatile uint32_t timer17_ms;
 extern TIM_HandleTypeDef htim2;  // 10kHz interrupt for microstep PWM
 
 /*                            Motor(15BY25-119)                         */
@@ -93,13 +94,14 @@ static const uint8_t step_table[4][4] = {
 
 #elif(_USE_STEP_MODE == _STEP_MODE_MICRO)
 
-const uint8_t step_table[32] = {
-  128, 153, 178, 201, 222, 239, 250, 255,
-  255, 250, 239, 222, 201, 178, 153, 128,
-  103, 78,  55,  34,  17,  6,   1,   0,
-  0,   1,   6,   17,  34,  55,  78, 103
+//sin table
+//360도를 32스텝으로 쪼갰을 때 11.25가 나오는데 11.25도의 간격을 pwm으로 표현하면 이렇게 나옴
+const uint8_t step_table[32] = {			//sin(degree) -> pwm
+  128, 152, 176, 198, 218, 234, 245, 253,
+  255, 253, 245, 234, 218, 198, 176, 152,
+  128, 103,  79,  57,  37,  21,  10,   2,
+    0,   2,  10,  21,  37,  57,  79, 103
 };
-
 #endif
 
 
@@ -107,14 +109,10 @@ const uint8_t step_table[32] = {
 
 static void apply_step(StepMotor *m)
 {
-//  HAL_GPIO_WritePin(m->in1_port, m->in1_pin, step_table[m->step_idx][0]);
-//  HAL_GPIO_WritePin(m->in2_port, m->in2_pin, step_table[m->step_idx][1]);
-//  HAL_GPIO_WritePin(m->in3_port, m->in3_pin, step_table[m->step_idx][2]);
-//  HAL_GPIO_WritePin(m->in4_port, m->in4_pin, step_table[m->step_idx][3]);
-//
 #if (_USE_STEP_MODE == _STEP_MODE_MICRO)
   m->vA = step_table[m->step_idx];
-  m->vB = step_table[(m->step_idx + (STEP_MASK >> 2)) & STEP_MASK];
+  m->vB = step_table[(m->step_idx + (STEP_MASK >> 2)) & STEP_MASK]; //(STEP_MASK >> 2) == 8 == 90°(difference sin with cos)
+  //sin파와 cos파의 위상 차가 90도가 나니까 +8을 한 거임 +8은 32를 360도로 치환했을 때 90도를 의미함
 
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, m->vA);
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 255 - m->vA);
@@ -211,24 +209,24 @@ void step_idx_init(void)
 	step_motor_right.step_idx = 0;
 }
 
-void step_test(unsigned char operation)
+void step_test(StepOperation op)
 {
-	if(operation == FORWARD)
+	if(op == FORWARD)
 	{
 		step_motor_left.forward(&step_motor_left);
 		step_motor_right.forward(&step_motor_right);
 	}
-	else if(operation == REVERSE)
+	else if(op == REVERSE)
 	{
 		step_motor_left.reverse(&step_motor_left);
 		step_motor_right.reverse(&step_motor_right);
 	}
-	else if(operation == TURN_LEFT)
+	else if(op == TURN_LEFT)
 	{
 		step_motor_left.reverse(&step_motor_left);
 		step_motor_right.forward(&step_motor_right);
 	}
-	else if(operation == TURN_RIGHT)
+	else if(op == TURN_RIGHT)
 	{
 		step_motor_left.forward(&step_motor_left);
 		step_motor_right.reverse(&step_motor_right);
@@ -239,44 +237,88 @@ void step_test(unsigned char operation)
 
 void step_stop(void)
 {
-	step_motor_left.slide(&step_motor_left);
-	step_motor_right.slide(&step_motor_right);
+	step_motor_left.brake(&step_motor_left);
+	step_motor_right.brake(&step_motor_right);
 }
 
 
-void step_run(unsigned char operation)
+void step_run(StepOperation op)
 {
+	/*
     uint32_t now = __HAL_TIM_GET_COUNTER(&htim2);
     uint32_t prev_time = 0;
-    uint32_t period_us = 0;
+    uint32_t period_us = 3000;
 
 	prev_time = (step_motor_left.dir == LEFT) ? step_motor_left.prev_time_us : step_motor_right.prev_time_us;
-	period_us = (step_motor_left.dir == LEFT) ? step_motor_left.period_us : step_motor_right.period_us;
+
+//	period_us = (step_motor_left.dir == LEFT) ? step_motor_left.period_us : step_motor_right.period_us;
+//	period_us = 3000;
 
     if ((now - prev_time) >= period_us)
     {
     	step_motor_left.prev_time_us = now;
 
-        if(operation == FORWARD)
+        if(op == FORWARD)
 		{
 			step_motor_left.forward(&step_motor_left);
 			step_motor_right.forward(&step_motor_right);
 		}
-		else if(operation == REVERSE)
+		else if(op == REVERSE)
 		{
 			step_motor_left.reverse(&step_motor_left);
 			step_motor_right.reverse(&step_motor_right);
 		}
-		else if(operation == TURN_LEFT)
+		else if(op == TURN_LEFT)
 		{
 			step_motor_left.reverse(&step_motor_left);
 			step_motor_right.forward(&step_motor_right);
 		}
-		else if(operation == TURN_RIGHT)
+		else if(op == TURN_RIGHT)
 		{
 			step_motor_left.forward(&step_motor_left);
 			step_motor_right.reverse(&step_motor_right);
 		}
-    }
+    }*/
+
+//    uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+    uint64_t now = 1000 * timer17_ms;
+	uint32_t period_us = 3000;
+
+	uart_printf("now: %11u\r\n", now);
+
+	if ((now - step_motor_left.prev_time_us) >= period_us)
+	{
+	   step_motor_left.prev_time_us = now;
+
+	   if(op == FORWARD || op == TURN_RIGHT)
+		   step_motor_left.forward(&step_motor_left);
+	   else
+		   step_motor_left.reverse(&step_motor_left);
+	   uart_printf("left success || ");
+	   static uint8_t left_cnt = 0;
+	   uart_printf("left_cnt: %d\r\n", left_cnt++);
+	}
+	else
+	{
+		step_motor_left.brake(&step_motor_left);
+	}
+
+	if ((now - step_motor_right.prev_time_us) >= period_us)
+	{
+	   step_motor_right.prev_time_us = now;
+
+	   if(op == FORWARD || op == TURN_LEFT)
+		   step_motor_right.forward(&step_motor_right);
+	   else
+		   step_motor_right.reverse(&step_motor_right);
+	   uart_printf("right success\r\n");
+
+	   static uint8_t right_cnt = 0;
+	   	   uart_printf("right_cnt: %d\r\n", right_cnt++);
+	}
+	else
+	{
+		step_motor_right.brake(&step_motor_right);
+	}
 }
 

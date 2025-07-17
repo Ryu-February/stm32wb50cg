@@ -273,6 +273,8 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   /* USER CODE END TIM1_TRG_COM_TIM17_IRQn 0 */
   HAL_TIM_IRQHandler(&htim17);
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 1 */
+  timer17_ms++;
+
   if(pb0_pressed == true)
   {
 	  if(++pb0_pressed_time >= 1500 && cur_mode != MODE_CALIBRATION)
@@ -290,6 +292,7 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   {
 	  pb0_pressed_time = 0;
   }
+
 
 //  if(++timer17_uart_ms >= 500)
 //  {
@@ -325,7 +328,7 @@ void TIM2_IRQHandler(void)
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-//  step_test();
+//  step_run(FORWARD);
   /* USER CODE END TIM2_IRQn 1 */
 }
 

@@ -13,10 +13,10 @@
 
 #define LEFT        0
 #define RIGHT       1
-#define FORWARD     0
-#define REVERSE     1
-#define TURN_LEFT   2
-#define TURN_RIGHT  3
+//#define FORWARD     0
+//#define REVERSE     1
+//#define TURN_LEFT   2
+//#define TURN_RIGHT  3
 
 #define SAFE_MAX_RPM    1200
 #define MAX_SPEED       100
@@ -28,7 +28,7 @@
 #define _STEP_MODE_HALF  1
 #define _STEP_MODE_MICRO 2
 
-#define _USE_STEP_MODE   _STEP_MODE_MICRO   // 변경 가능: FULL, HALF, MICRO
+#define _USE_STEP_MODE   _STEP_MODE_HALF   // 변경 가능: FULL, HALF, MICRO
 
 #if (_USE_STEP_MODE == _STEP_MODE_HALF)
   #define STEP_MASK     0x07
@@ -69,6 +69,20 @@ typedef struct
   uint8_t vA;
   uint8_t vB;
 } MicroStepMotor;
+
+typedef enum
+{
+    FORWARD,
+    REVERSE,
+    TURN_LEFT,
+    TURN_RIGHT
+} StepOperation;
+
+typedef enum
+{
+    MOTOR_LEFT,
+    MOTOR_RIGHT
+} MotorSide;
 
 void step_init(StepMotor *m);
 void step_forward(StepMotor *m);

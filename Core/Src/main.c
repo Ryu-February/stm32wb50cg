@@ -71,6 +71,7 @@ extern volatile bool pb0_pressed;
 volatile bool check_color = false;
 
 volatile bool mode_entry = false;
+extern volatile uint32_t timer17_ms;
 
 extern volatile unsigned char cur_mode;
 color_t detected_left = COLOR_BLACK;
@@ -169,6 +170,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_TIM_Base_Start(&htim2);
   HAL_TIM_Base_Start_IT(&htim16);
   HAL_TIM_Base_Start_IT(&htim17);
   HAL_UART_Init(&huart1);
@@ -183,6 +185,8 @@ int main(void)
 
   load_color_reference_table();
   debug_print_color_reference_table();
+
+
 
 
   /* USER CODE END 2 */
@@ -205,7 +209,7 @@ int main(void)
 		  for(int i = 0; i < 100; i ++)
 		  {
 			  step_run(FORWARD);
-			  HAL_Delay(3);
+//			  HAL_Delay(3);
 		  }
 		  step_stop();
 		  detected_left = COLOR_BLACK;
@@ -215,8 +219,8 @@ int main(void)
 		  HAL_Delay(500);
 		  for(int i = 0; i < 100; i ++)
 		  {
-			  step_test(REVERSE);
-			  HAL_Delay(3);
+			  step_run(REVERSE);
+//			  HAL_Delay(3);
 		  }
 		  step_stop();
 		  detected_left = COLOR_BLACK;
@@ -226,8 +230,8 @@ int main(void)
 		  HAL_Delay(500);
 		  for(int i = 0; i < 100; i ++)
 		  {
-			  step_test(TURN_LEFT);
-			  HAL_Delay(3);
+			  step_run(TURN_LEFT);
+//			  HAL_Delay(3);
 		  }
 		  step_stop();
 		  detected_left = COLOR_BLACK;
@@ -237,8 +241,8 @@ int main(void)
 		  HAL_Delay(500);
 		  for(int i = 0; i < 100; i ++)
 		  {
-			  step_test(TURN_RIGHT);
-			  HAL_Delay(2);
+			  step_run(TURN_RIGHT);
+//			  HAL_Delay(2);
 		  }
 		  step_stop();
 		  detected_left = COLOR_BLACK;
@@ -505,50 +509,83 @@ static void MX_RTC_Init(void)
   * @retval None
   */
 static void MX_TIM2_Init(void)
+//{
+//
+//  /* USER CODE BEGIN TIM2_Init 0 */
+//
+//  /* USER CODE END TIM2_Init 0 */
+//
+//  TIM_MasterConfigTypeDef sMasterConfig = {0};
+//  TIM_OC_InitTypeDef sConfigOC = {0};
+//
+//  /* USER CODE BEGIN TIM2_Init 1 */
+//
+//  /* USER CODE END TIM2_Init 1 */
+//  htim2.Instance = TIM2;
+//  htim2.Init.Prescaler = 63;
+//  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+//  htim2.Init.Period = 4294967295;
+//  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+//  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+//  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+//  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+//  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+//  sConfigOC.Pulse = 0;
+//  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+//  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+//  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  /* USER CODE BEGIN TIM2_Init 2 */
+//
+//  /* USER CODE END TIM2_Init 2 */
+//
+//}
 {
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 63;
+  htim2.Init.Prescaler = 63;                    // 64MHz / (63+1) = 1MHz → 1us per tick
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
+  htim2.Init.Period = 255;                      // 8bit PWM 주기
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
   }
+
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
+
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
 
-  /* USER CODE END TIM2_Init 2 */
-
+  // 모든 채널에 대해 설정!
+  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1);
+  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2);
+  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3);
+  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4);
 }
 
 /**
