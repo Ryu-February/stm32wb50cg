@@ -77,7 +77,8 @@ uint8_t rx_buf[32];       // 수신 버퍼
 uint8_t rx_index = 0;     // 수신 인덱스
 bool command_ready = false; // 파싱 준비 완료 flag
 int steps = 0;
-
+extern volatile uint64_t tim2_us;
+extern volatile bool idx_change;
 extern volatile unsigned char cur_mode;
 color_t detected_left = COLOR_BLACK;
 color_t detected_right = COLOR_BLACK;
@@ -154,9 +155,8 @@ void parse_uart_command(void)
 			op = TURN_RIGHT;
 			detected_left = COLOR_WHITE;
 		}
-
-
     }
+    uart_printf("rx_buffer: %s\r\n", rx_buf);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -236,7 +236,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_TIM_Base_Start(&htim2);
+  HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim16);
   HAL_TIM_Base_Start_IT(&htim17);
   HAL_UART_Init(&huart1);
@@ -270,22 +270,60 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+//	  step_test(FORWARD);
+//	  HAL_Delay(1);
+
+//	  if(check_color == true)
+//	  {
+//		  	uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+//		  	static uint64_t prev_us = 0;
+//
+//		  	if(now - prev_us > 10)
+//		  	{
+//			  	prev_us = now;
+//
+//			  	step_test(FORWARD);
+//		  	}
+////		  check_color = false;
+//	  }
+
 	  parse_uart_command(); // 수신 명령 파싱 및 실행
 
 	  if(check_color == true)
 	  {
-		  if (op != NONE && steps > 0 && steps < 1000/* && check_color == true*/)
+		  HAL_Delay(1000);
+		  if (op != NONE && steps > 0 && steps < 5000)
 		  {
-			  for (int i = 0; i < steps; i++)
+			  for (int i = 0; i < steps;)
 			  {
 				  step_test(op);
-				  HAL_Delay(3); // 마이크로스텝 속도 조절
+				  if(idx_change == true)
+				  	  i++;
+//				  HAL_Delay(1); // 마이크로스텝 속도 조절
 			  }
 			  step_stop(); // 끝나면 정지
 			  check_color = false;
-			}
+			  switch (op)
+			  {
+					case NONE :
+						uart_printf("NONE\r\n");
+						break;
+					case FORWARD :
+						uart_printf("FORWARD\r\n");
+						break;
+					case REVERSE :
+						uart_printf("REVERSE\r\n");
+						break;
+					case TURN_LEFT :
+						uart_printf("TURN_LEFT\r\n");
+						break;
+					case TURN_RIGHT :
+						uart_printf("TURN_RIGHT\r\n");
+						break;
+					default :
+			  }
+		  }
 	  }
-
 
 //	  if(detected_left == COLOR_RED)
 //	  {
@@ -591,14 +629,14 @@ static void MX_TIM2_Init(void)
 {
 
   /* USER CODE BEGIN TIM2_Init 0 */
-
+//
   /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM2_Init 1 */
-
+//
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 63;
@@ -606,7 +644,12 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -616,56 +659,11 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM2_Init 2 */
-
+//
   /* USER CODE END TIM2_Init 2 */
 
 }
-//{
-//  TIM_MasterConfigTypeDef sMasterConfig = {0};
-//  TIM_OC_InitTypeDef sConfigOC = {0};
-//
-//  htim2.Instance = TIM2;
-//  htim2.Init.Prescaler = 63;                    // 64MHz / (63+1) = 1MHz → 1us per tick
-//  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-//  htim2.Init.Period = 255;                      // 8bit PWM 주기
-//  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-//  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-//  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//
-//  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-//  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-//  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-//  {
-//    Error_Handler();
-//  }
-//
-//  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-//  sConfigOC.Pulse = 0;
-//  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-//  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-//
-//  // 모든 채널에 대해 설정!
-//  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1);
-//  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2);
-//  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3);
-//  HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4);
-//}
 
 /**
   * @brief TIM16 Initialization Function
@@ -808,18 +806,18 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
                           |GPIO_PIN_7, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : PA0 PA4 PA5 PA6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA1 PA2 PA3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3;
+  /*Configure GPIO pins : PA0 PA1 PA2 PA3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PA4 PA5 PA6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA7 */

@@ -5,11 +5,17 @@
  *      Author: RCY
  */
 
+#include <stdbool.h>
 #include "uart.h"
 #include "step.h"
 
+volatile bool idx_change = false;
+
 extern volatile uint32_t timer17_ms;
+extern volatile uint64_t tim2_us;
 extern TIM_HandleTypeDef htim2;  // 10kHz interrupt for microstep PWM
+extern TIM_HandleTypeDef htim16;  // 10kHz interrupt for microstep PWM
+extern TIM_HandleTypeDef htim17;  // 10kHz interrupt for microstep PWM
 
 /*                            Motor(15BY25-119)                         */
 /*                           Motor driver(A3916)                        */
@@ -93,6 +99,7 @@ static const uint8_t step_table[4][4] = {
 };
 
 #elif(_USE_STEP_MODE == _STEP_MODE_MICRO)
+#define STEP_TABLE_SIZE		32
 
 //sin table
 //360도를 32스텝으로 쪼갰을 때 11.25가 나오는데 11.25도의 간격을 pwm으로 표현하면 이렇게 나옴
@@ -110,14 +117,22 @@ const uint8_t step_table[32] = {			//sin(degree) -> pwm
 static void apply_step(StepMotor *m)
 {
 #if (_USE_STEP_MODE == _STEP_MODE_MICRO)
+  uint8_t now = __HAL_TIM_GET_COUNTER(&htim2);
+  now = (now % 255);
+
   m->vA = step_table[m->step_idx];
-  m->vB = step_table[(m->step_idx + (STEP_MASK >> 2)) & STEP_MASK]; //(STEP_MASK >> 2) == 8 == 90°(difference sin with cos)
+  m->vB = step_table[(m->step_idx + (STEP_TABLE_SIZE >> 2)) & STEP_MASK]; //(STEP_MASK >> 2) == 8 == 90°(difference sin with cos)
   //sin파와 cos파의 위상 차가 90도가 나니까 +8을 한 거임 +8은 32를 360도로 치환했을 때 90도를 의미함
 
-  HAL_GPIO_WritePin(m->in1_port, m->in1_pin, (m->vA > 127));
-  HAL_GPIO_WritePin(m->in2_port, m->in2_pin, !(m->vA > 127));
-  HAL_GPIO_WritePin(m->in3_port, m->in3_pin, (m->vB > 127));
-  HAL_GPIO_WritePin(m->in4_port, m->in4_pin, !(m->vB > 127));
+  if (now < m->vA)				HAL_GPIO_WritePin(m->in1_port, m->in1_pin, GPIO_PIN_SET);
+  else							HAL_GPIO_WritePin(m->in1_port, m->in1_pin, GPIO_PIN_RESET);
+  if (now < (255 - m->vA)) 	  	HAL_GPIO_WritePin(m->in2_port, m->in2_pin, GPIO_PIN_SET);
+  else 							HAL_GPIO_WritePin(m->in2_port, m->in2_pin, GPIO_PIN_RESET);
+
+  if (now < m->vB)				HAL_GPIO_WritePin(m->in3_port, m->in3_pin, GPIO_PIN_SET);
+  else							HAL_GPIO_WritePin(m->in3_port, m->in3_pin, GPIO_PIN_RESET);
+  if (now < (255 - m->vB)) 	  	HAL_GPIO_WritePin(m->in4_port, m->in4_pin, GPIO_PIN_SET);
+  else 							HAL_GPIO_WritePin(m->in4_port, m->in4_pin, GPIO_PIN_RESET);
 #else
   HAL_GPIO_WritePin(m->in1_port, m->in1_pin, step_table[m->step_idx][0]);
   HAL_GPIO_WritePin(m->in2_port, m->in2_pin, step_table[m->step_idx][1]);
@@ -140,14 +155,42 @@ void step_init(StepMotor *m)
 
 void step_forward(StepMotor *m)
 {
+#if (_USE_STEP_MODE != _STEP_MODE_MICRO)
   apply_step(m);
   m->step_idx = (m->step_idx + 1) & STEP_MASK;
+#else
+  apply_step(m);
+  uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+  static uint64_t prev_us = 0;
+  idx_change = false;
+  if(now - prev_us < 800)
+  {
+	  return;
+  }
+  idx_change = true;
+  prev_us = now;
+  m->step_idx = (m->step_idx - 1) & STEP_MASK;
+#endif
 }
 
 void step_reverse(StepMotor *m)
 {
+#if (_USE_STEP_MODE != _STEP_MODE_MICRO)
   apply_step(m);
   m->step_idx = (m->step_idx - 1) & STEP_MASK;
+#else
+  apply_step(m);
+  uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+  static uint64_t prev_us = 0;
+  idx_change = false;
+  if(now - prev_us < 800)
+  {
+	return;
+  }
+  idx_change = true;
+  prev_us = now;
+  m->step_idx = (m->step_idx + 1) & STEP_MASK;
+#endif
 }
 
 void step_brake(StepMotor *m)
@@ -231,8 +274,6 @@ void step_test(StepOperation op)
 		step_motor_left.forward(&step_motor_left);
 		step_motor_right.reverse(&step_motor_right);
 	}
-
-
 }
 
 void step_stop(void)
@@ -244,48 +285,15 @@ void step_stop(void)
 
 void step_run(StepOperation op)
 {
-	/*
-    uint32_t now = __HAL_TIM_GET_COUNTER(&htim2);
-    uint32_t prev_time = 0;
-    uint32_t period_us = 3000;
 
-	prev_time = (step_motor_left.dir == LEFT) ? step_motor_left.prev_time_us : step_motor_right.prev_time_us;
+    uint64_t now = __HAL_TIM_GET_COUNTER(&htim17);
+	static uint32_t prev_ms_left = 0;
+	static uint32_t prev_ms_right = 0;
+    uint32_t period_ms = 3;
 
-//	period_us = (step_motor_left.dir == LEFT) ? step_motor_left.period_us : step_motor_right.period_us;
-//	period_us = 3000;
-
-    if ((now - prev_time) >= period_us)
-    {
-    	step_motor_left.prev_time_us = now;
-
-        if(op == FORWARD)
-		{
-			step_motor_left.forward(&step_motor_left);
-			step_motor_right.forward(&step_motor_right);
-		}
-		else if(op == REVERSE)
-		{
-			step_motor_left.reverse(&step_motor_left);
-			step_motor_right.reverse(&step_motor_right);
-		}
-		else if(op == TURN_LEFT)
-		{
-			step_motor_left.reverse(&step_motor_left);
-			step_motor_right.forward(&step_motor_right);
-		}
-		else if(op == TURN_RIGHT)
-		{
-			step_motor_left.forward(&step_motor_left);
-			step_motor_right.reverse(&step_motor_right);
-		}
-    }*/
-
-    uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
-	uint32_t period_us = 3000;
-
-	if ((now - step_motor_left.prev_time_us) >= period_us)
+	if (now - prev_ms_left >= period_ms)
 	{
-	   step_motor_left.prev_time_us = now;
+		prev_ms_left = now;
 
 	   if(op == FORWARD || op == TURN_RIGHT)
 		   step_motor_left.forward(&step_motor_left);
@@ -297,9 +305,9 @@ void step_run(StepOperation op)
 		step_motor_left.brake(&step_motor_left);
 	}
 
-	if ((now - step_motor_right.prev_time_us) >= period_us)
+	if (now - prev_ms_right >= period_ms)
 	{
-	   step_motor_right.prev_time_us = now;
+		prev_ms_right = now;
 
 	   if(op == FORWARD || op == TURN_LEFT)
 		   step_motor_right.forward(&step_motor_right);
@@ -312,3 +320,8 @@ void step_run(StepOperation op)
 	}
 }
 
+void step_apply_pwm_all(void)
+{
+	apply_step(&step_motor_left);
+	apply_step(&step_motor_right);
+}

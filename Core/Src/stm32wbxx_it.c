@@ -22,11 +22,10 @@
 #include "stm32wbxx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 #include <stdbool.h>
-#include "rgb.h"
 #include "color.h"
 #include "step.h"
-//#include "rtc.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,6 +49,7 @@ int i = 0;
 volatile uint32_t timer17_ms = 0;
 volatile uint32_t timer17_uart_ms = 0;
 volatile uint32_t pb0_pressed_time = 0;
+volatile uint64_t tim2_us = 0;
 
 volatile unsigned char cur_mode = false;
 
@@ -80,6 +80,7 @@ extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 extern color_t detected_left;
 extern color_t detected_right;
+extern volatile bool check_color;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -259,7 +260,13 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   HAL_TIM_IRQHandler(&htim16);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
-  rgb_set_color(detected_left);
+//  rgb_set_color(detected_left);
+//  if(check_color == true)
+//  {
+////	  step_test(REVERSE);
+//	  step_test(FORWARD);
+////		  check_color = false;
+//  }
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -328,7 +335,7 @@ void TIM2_IRQHandler(void)
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-//  step_run(FORWARD);
+
   /* USER CODE END TIM2_IRQn 1 */
 }
 

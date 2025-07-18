@@ -28,7 +28,7 @@
 #define _STEP_MODE_HALF  1
 #define _STEP_MODE_MICRO 2
 
-#define _USE_STEP_MODE   _STEP_MODE_HALF   // 변경 가능: FULL, HALF, MICRO
+#define _USE_STEP_MODE   _STEP_MODE_MICRO   // 변경 가능: FULL, HALF, MICRO
 
 #if (_USE_STEP_MODE == _STEP_MODE_HALF)
   #define STEP_MASK     0x07
@@ -128,5 +128,7 @@ void step_test(StepOperation  op);
 void step_idx_init(void);
 void step_stop(void);
 void step_run(StepOperation op);
+void step_apply_pwm_all(void);
+
 
 #endif /* INC_DRIVER_STEP_H_ */
