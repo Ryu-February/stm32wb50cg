@@ -114,10 +114,10 @@ static void apply_step(StepMotor *m)
   m->vB = step_table[(m->step_idx + (STEP_MASK >> 2)) & STEP_MASK]; //(STEP_MASK >> 2) == 8 == 90°(difference sin with cos)
   //sin파와 cos파의 위상 차가 90도가 나니까 +8을 한 거임 +8은 32를 360도로 치환했을 때 90도를 의미함
 
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, m->vA);
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 255 - m->vA);
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, m->vB);
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 255 - m->vB);
+  HAL_GPIO_WritePin(m->in1_port, m->in1_pin, (m->vA > 127));
+  HAL_GPIO_WritePin(m->in2_port, m->in2_pin, !(m->vA > 127));
+  HAL_GPIO_WritePin(m->in3_port, m->in3_pin, (m->vB > 127));
+  HAL_GPIO_WritePin(m->in4_port, m->in4_pin, !(m->vB > 127));
 #else
   HAL_GPIO_WritePin(m->in1_port, m->in1_pin, step_table[m->step_idx][0]);
   HAL_GPIO_WritePin(m->in2_port, m->in2_pin, step_table[m->step_idx][1]);
@@ -280,11 +280,8 @@ void step_run(StepOperation op)
 		}
     }*/
 
-//    uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
-    uint64_t now = 1000 * timer17_ms;
+    uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
 	uint32_t period_us = 3000;
-
-	uart_printf("now: %11u\r\n", now);
 
 	if ((now - step_motor_left.prev_time_us) >= period_us)
 	{
@@ -294,9 +291,6 @@ void step_run(StepOperation op)
 		   step_motor_left.forward(&step_motor_left);
 	   else
 		   step_motor_left.reverse(&step_motor_left);
-	   uart_printf("left success || ");
-	   static uint8_t left_cnt = 0;
-	   uart_printf("left_cnt: %d\r\n", left_cnt++);
 	}
 	else
 	{
@@ -311,10 +305,6 @@ void step_run(StepOperation op)
 		   step_motor_right.forward(&step_motor_right);
 	   else
 		   step_motor_right.reverse(&step_motor_right);
-	   uart_printf("right success\r\n");
-
-	   static uint8_t right_cnt = 0;
-	   	   uart_printf("right_cnt: %d\r\n", right_cnt++);
 	}
 	else
 	{

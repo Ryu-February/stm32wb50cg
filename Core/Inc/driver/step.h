@@ -123,10 +123,10 @@ StepMotor name = 				\
 void step_init_all(void);
 void roe_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
 void ms_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
-void step_test(unsigned char operation);
+void step_test(StepOperation  op);
 
 void step_idx_init(void);
 void step_stop(void);
-void step_run(unsigned char operation);
+void step_run(StepOperation op);
 
 #endif /* INC_DRIVER_STEP_H_ */
