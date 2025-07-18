@@ -72,6 +72,7 @@ typedef struct
 
 typedef enum
 {
+	NONE,
     FORWARD,
     REVERSE,
     TURN_LEFT,

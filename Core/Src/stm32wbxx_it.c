@@ -277,12 +277,12 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
 
   if(pb0_pressed == true)
   {
-	  if(++pb0_pressed_time >= 1500 && cur_mode != MODE_CALIBRATION)
+	  if(++pb0_pressed_time >= 5000 && cur_mode != MODE_CALIBRATION)
 	  {
 		  cur_mode = MODE_CALIBRATION;
 		  pb0_pressed_time = 0;
 	  }
-	  else if(++pb0_pressed_time >= 1500 && cur_mode == MODE_CALIBRATION)
+	  else if(++pb0_pressed_time >= 5000 && cur_mode == MODE_CALIBRATION)
 	  {
 		  cur_mode = 0;
 		  pb0_pressed_time = 0;

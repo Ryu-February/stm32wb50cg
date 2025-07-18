@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include "rgb.h"
@@ -72,10 +73,15 @@ volatile bool check_color = false;
 
 volatile bool mode_entry = false;
 extern volatile uint32_t timer17_ms;
+uint8_t rx_buf[32];       // 수신 버퍼
+uint8_t rx_index = 0;     // 수신 인덱스
+bool command_ready = false; // 파싱 준비 완료 flag
+int steps = 0;
 
 extern volatile unsigned char cur_mode;
 color_t detected_left = COLOR_BLACK;
 color_t detected_right = COLOR_BLACK;
+StepOperation op = NONE;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,6 +99,66 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1)
+    {
+        uint8_t byte = rx_buf[rx_index];
+
+        if (byte == '>')  // 끝 문자
+        {
+            command_ready = true;
+            rx_buf[rx_index + 1] = '\0';  // null-terminate
+            rx_index = 0;
+        }
+        else
+        {
+            if (rx_index < sizeof(rx_buf) - 2)
+                rx_index++;
+        }
+
+        HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);  // 다음 바이트 준비
+    }
+}
+
+void parse_uart_command(void)
+{
+    if (!command_ready)
+        return;
+
+    command_ready = false;
+
+    if (rx_buf[0] == '<' && rx_buf[1] != '\0')
+    {
+        char dir = rx_buf[1];
+        steps = atoi((char*)&rx_buf[2]);  // 예: "100"
+
+        if (dir == 'F')
+		{
+			op = FORWARD;
+			detected_left = COLOR_RED;
+		}
+        else if (dir == 'B')
+        {
+        	op = REVERSE;
+        	detected_left = COLOR_BLUE;
+        }
+        else if (dir == 'L')
+		{
+			op = TURN_LEFT;
+			detected_left = COLOR_GREEN;
+		}
+        else if (dir == 'R')
+		{
+			op = TURN_RIGHT;
+			detected_left = COLOR_WHITE;
+		}
+
+
+    }
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == GPIO_PIN_0) // PB0 눌림
@@ -174,6 +240,7 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim16);
   HAL_TIM_Base_Start_IT(&htim17);
   HAL_UART_Init(&huart1);
+  HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);
 
   rgb_init();
 
@@ -203,74 +270,141 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  if(detected_left == COLOR_RED)
+	  parse_uart_command(); // 수신 명령 파싱 및 실행
+
+	  if(check_color == true)
 	  {
-		  HAL_Delay(500);
-		  for(int i = 0; i < 100; i ++)
+		  if (op != NONE && steps > 0 && steps < 1000/* && check_color == true*/)
 		  {
-			  step_run(FORWARD);
+			  for (int i = 0; i < steps; i++)
+			  {
+				  step_test(op);
+				  HAL_Delay(3); // 마이크로스텝 속도 조절
+			  }
+			  step_stop(); // 끝나면 정지
+			  check_color = false;
+			}
+	  }
+
+
+//	  if(detected_left == COLOR_RED)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 100; i ++)
+//		  {
+//			  step_test(FORWARD);
 //			  HAL_Delay(3);
-		  }
-		  step_stop();
-		  detected_left = COLOR_BLACK;
-	  }
-	  else if(detected_left == COLOR_ORANGE)
-	  {
-		  HAL_Delay(500);
-		  for(int i = 0; i < 100; i ++)
-		  {
-			  step_run(REVERSE);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_ORANGE)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 200; i ++)
+//		  {
+//			  step_test(FORWARD);
 //			  HAL_Delay(3);
-		  }
-		  step_stop();
-		  detected_left = COLOR_BLACK;
-	  }
-	  else if(detected_left == COLOR_YELLOW)
-	  {
-		  HAL_Delay(500);
-		  for(int i = 0; i < 100; i ++)
-		  {
-			  step_run(TURN_LEFT);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_YELLOW)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 300; i ++)
+//		  {
+//			  step_test(FORWARD);
 //			  HAL_Delay(3);
-		  }
-		  step_stop();
-		  detected_left = COLOR_BLACK;
-	  }
-	  else if(detected_left == COLOR_GREEN)
-	  {
-		  HAL_Delay(500);
-		  for(int i = 0; i < 100; i ++)
-		  {
-			  step_run(TURN_RIGHT);
-//			  HAL_Delay(2);
-		  }
-		  step_stop();
-		  detected_left = COLOR_BLACK;
-	  }
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_GREEN)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 400; i ++)
+//		  {
+//			  step_test(FORWARD);
+//			  HAL_Delay(3);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_BLUE)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 500; i ++)
+//		  {
+//			  step_test(FORWARD);
+//			  HAL_Delay(3);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_PURPLE)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 600; i ++)
+//		  {
+//			  step_test(FORWARD);
+//			  HAL_Delay(3);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_LIGHT_GREEN)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 700; i ++)
+//		  {
+//			  step_test(FORWARD);
+//			  HAL_Delay(3);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_SKY_BLUE)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 800; i ++)
+//		  {
+//			  step_test(FORWARD);
+//			  HAL_Delay(3);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else if(detected_left == COLOR_PINK)
+//	  {
+//		  HAL_Delay(500);
+//		  for(int i = 0; i < 900; i ++)
+//		  {
+//			  step_test(FORWARD);
+//			  HAL_Delay(3);
+//		  }
+//		  detected_left = COLOR_BLACK;
+//	  }
+//	  else
+//	  {
+//		 step_stop();
+//	  }
 
 
 
-	  if(check_color == true && cur_mode == 0)
-	  {
-		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
-		  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
-
-		  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
-		              left_color.red, left_color.green, left_color.blue, left_color.clear);
-
-		  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
-		              right_color.red, right_color.green, right_color.blue, right_color.clear);
-
-		  detected_left =
-				  classify_color(BH1745_ADDR_LEFT, left_color.red, left_color.green, left_color.blue, left_color.clear);
-		  detected_right =
-				  classify_color(BH1745_ADDR_RIGHT, right_color.red, right_color.green, right_color.blue, right_color.clear);
-
-		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
-		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
-		  uart_printf("--------------------------------\r\n");
-		  check_color = false;
-	  }
+//	  if(check_color == true && cur_mode == 0)
+//	  {
+//		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
+//		  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
+//
+//		  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
+//		              left_color.red, left_color.green, left_color.blue, left_color.clear);
+//
+//		  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
+//		              right_color.red, right_color.green, right_color.blue, right_color.clear);
+//
+//		  detected_left =
+//				  classify_color(BH1745_ADDR_LEFT, left_color.red, left_color.green, left_color.blue, left_color.clear);
+//		  detected_right =
+//				  classify_color(BH1745_ADDR_RIGHT, right_color.red, right_color.green, right_color.blue, right_color.clear);
+//
+//		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
+//		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
+//		  uart_printf("--------------------------------\r\n");
+//		  check_color = false;
+//	  }
 
 	  static unsigned char once_flag = 0;
 
