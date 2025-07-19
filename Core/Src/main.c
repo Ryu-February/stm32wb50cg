@@ -296,7 +296,15 @@ int main(void)
 		  {
 			  for (int i = 0; i < steps;)
 			  {
-				  step_test(op);
+				uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+				static uint64_t prev_us = 0;
+
+				if(now - prev_us > 10)
+				{
+					prev_us = now;
+
+					step_test(op);
+				}
 				  if(idx_change == true)
 				  	  i++;
 //				  HAL_Delay(1); // 마이크로스텝 속도 조절
@@ -325,69 +333,27 @@ int main(void)
 		  }
 	  }
 
-//	  if(detected_left == COLOR_RED)
-//	  {
-//		  HAL_Delay(500);
-//		  for(int i = 0; i < 100; i ++)
-//		  {
-//			  step_test(FORWARD);
-//			  HAL_Delay(3);
-//		  }
-//		  detected_left = COLOR_BLACK;
-//	  }
-//	  else if(detected_left == COLOR_ORANGE)
-//	  {
-//		  HAL_Delay(500);
-//		  for(int i = 0; i < 200; i ++)
-//		  {
-//			  step_test(FORWARD);
-//			  HAL_Delay(3);
-//		  }
-//		  detected_left = COLOR_BLACK;
-//	  }
-//	  else if(detected_left == COLOR_YELLOW)
-//	  {
-//		  HAL_Delay(500);
-//		  for(int i = 0; i < 300; i ++)
-//		  {
-//			  step_test(FORWARD);
-//			  HAL_Delay(3);
-//		  }
-//		  detected_left = COLOR_BLACK;
-//	  }
-//	  else if(detected_left == COLOR_GREEN)
-//	  {
-//		  HAL_Delay(500);
-//		  for(int i = 0; i < 400; i ++)
-//		  {
-//			  step_test(FORWARD);
-//			  HAL_Delay(3);
-//		  }
-//		  detected_left = COLOR_BLACK;
-//	  }
+	  if(check_color == true && cur_mode == 0)
+	  {
+		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
+		  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
 
+		  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
+		              left_color.red, left_color.green, left_color.blue, left_color.clear);
 
-//	  if(check_color == true && cur_mode == 0)
-//	  {
-//		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
-//		  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
-//
-//		  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
-//		              left_color.red, left_color.green, left_color.blue, left_color.clear);
-//
-//		  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
-//		              right_color.red, right_color.green, right_color.blue, right_color.clear);
-//
-//		  detected_left =
-//				  classify_color(BH1745_ADDR_LEFT, left_color.red, left_color.green, left_color.blue, left_color.clear);
-//		  detected_right =
-//				  classify_color(BH1745_ADDR_RIGHT, right_color.red, right_color.green, right_color.blue, right_color.clear);
-//
-//		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
-//		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
-//		  uart_printf("--------------------------------\r\n");
-//		  check_color = false;
-//	  }
+		  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
+		              right_color.red, right_color.green, right_color.blue, right_color.clear);
+
+		  detected_left =
+				  classify_color(BH1745_ADDR_LEFT, left_color.red, left_color.green, left_color.blue, left_color.clear);
+		  detected_right =
+				  classify_color(BH1745_ADDR_RIGHT, right_color.red, right_color.green, right_color.blue, right_color.clear);
+
+		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
+		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
+		  uart_printf("--------------------------------\r\n");
+		  check_color = false;
+	  }
 
 	  static unsigned char once_flag = 0;
 

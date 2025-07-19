@@ -127,8 +127,6 @@ void step_test(StepOperation  op);
 
 void step_idx_init(void);
 void step_stop(void);
-void step_run(StepOperation op);
-void step_apply_pwm_all(void);
 
 
 #endif /* INC_DRIVER_STEP_H_ */

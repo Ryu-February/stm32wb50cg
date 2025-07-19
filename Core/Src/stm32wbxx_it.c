@@ -260,7 +260,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   HAL_TIM_IRQHandler(&htim16);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
-//  rgb_set_color(detected_left);
+  rgb_set_color(detected_left);
 //  if(check_color == true)
 //  {
 ////	  step_test(REVERSE);
