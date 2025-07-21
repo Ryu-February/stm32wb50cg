@@ -46,17 +46,21 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 int i = 0;
+volatile uint64_t timer2_1us = 0;
+volatile uint32_t timer16_10us = 0;
 volatile uint32_t timer17_ms = 0;
 volatile uint32_t timer17_uart_ms = 0;
 volatile uint32_t pb0_pressed_time = 0;
 volatile uint64_t tim2_us = 0;
+
+volatile bool delay_flag = false;
 
 volatile unsigned char cur_mode = false;
 
 volatile bool switch_valid = false;
 volatile bool uart_enable = false;
 volatile bool pb0_pressed = false;
-
+volatile bool tim16_irq = false;
 
 /* USER CODE END PV */
 
@@ -260,13 +264,45 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   HAL_TIM_IRQHandler(&htim16);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
+  timer16_10us++;
+  tim16_irq = true;
   rgb_set_color(detected_left);
-//  if(check_color == true)
-//  {
-////	  step_test(REVERSE);
-//	  step_test(FORWARD);
-////		  check_color = false;
-//  }
+/*
+  uint16_t fix_step = 0;
+
+  if(delay_flag == true)
+  {
+	  switch (detected_left)
+	    {
+			case COLOR_RED :
+				fix_step = 1000;
+				step_test(FORWARD);
+				break;
+			case COLOR_ORANGE :
+				fix_step = 1000;
+				step_test(REVERSE);
+			 	break;
+			case COLOR_YELLOW :
+				fix_step = 390;
+				step_test(TURN_LEFT);
+				break;
+			case COLOR_GREEN :
+				fix_step = 390;
+				step_test(TURN_RIGHT);
+				break;
+			default :
+				break;
+	    }
+  }
+
+  if(get_steps() > fix_step)
+  {
+	  step_stop();
+	  detected_left = COLOR_BLACK;
+	  total_step_init();
+	  delay_flag = false;
+  }
+  */
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -335,7 +371,7 @@ void TIM2_IRQHandler(void)
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-
+  timer2_1us++;//이렇게 하면 안 되는 듯 이거 71초 정도 나올 거임
   /* USER CODE END TIM2_IRQn 1 */
 }
 

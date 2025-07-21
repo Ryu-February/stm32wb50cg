@@ -161,14 +161,14 @@ void step_forward(StepMotor *m)
 #else
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
-  static uint64_t prev_us = 0;
   idx_change = false;
-  if(now - prev_us < 800)
+  if(now - m->prev_time_us < 1000)
   {
 	  return;
   }
+  m->total_step++;
   idx_change = true;
-  prev_us = now;
+  m->prev_time_us = now;
   m->step_idx = (m->step_idx - 1) & STEP_MASK;
 #endif
 }
@@ -181,14 +181,14 @@ void step_reverse(StepMotor *m)
 #else
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
-  static uint64_t prev_us = 0;
   idx_change = false;
-  if(now - prev_us < 800)
+  if(now - m->prev_time_us < 1000)
   {
 	return;
   }
+  m->total_step++;
   idx_change = true;
-  prev_us = now;
+  m->prev_time_us = now;
   m->step_idx = (m->step_idx + 1) & STEP_MASK;
 #endif
 }
@@ -250,6 +250,17 @@ void step_idx_init(void)
 {
 	step_motor_left.step_idx = 0;
 	step_motor_right.step_idx = 0;
+}
+
+uint32_t get_steps(void)
+{
+	return (uint32_t) step_motor_left.total_step;
+}
+
+void total_step_init(void)
+{
+	step_motor_left.total_step = 0;
+	step_motor_right.total_step = 0;
 }
 
 void step_test(StepOperation op)

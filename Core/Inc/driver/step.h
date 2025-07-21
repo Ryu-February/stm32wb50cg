@@ -50,9 +50,10 @@ typedef struct StepMotor
 
   uint8_t dir;
   uint8_t step_idx;
-  uint32_t period_us;
-  uint32_t prev_time_us;
+  uint64_t period_us;
+  uint64_t prev_time_us;
 
+  uint32_t total_step;
   uint8_t vA, vB;      // for micro step
 
   void (*init)(struct StepMotor*);
@@ -123,6 +124,9 @@ StepMotor name = 				\
 void step_init_all(void);
 void roe_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
 void ms_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
+
+uint32_t get_steps(void);
+void total_step_init(void);
 void step_test(StepOperation  op);
 
 void step_idx_init(void);

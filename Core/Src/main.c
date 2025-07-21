@@ -72,7 +72,10 @@ extern volatile bool pb0_pressed;
 volatile bool check_color = false;
 
 volatile bool mode_entry = false;
+extern volatile uint64_t timer2_1us;
+extern volatile uint32_t timer16_10us;
 extern volatile uint32_t timer17_ms;
+extern volatile bool delay_flag;
 uint8_t rx_buf[32];       // 수신 버퍼
 uint8_t rx_index = 0;     // 수신 인덱스
 bool command_ready = false; // 파싱 준비 완료 flag
@@ -83,6 +86,8 @@ extern volatile unsigned char cur_mode;
 color_t detected_left = COLOR_BLACK;
 color_t detected_right = COLOR_BLACK;
 StepOperation op = NONE;
+
+extern volatile bool tim16_irq;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -292,7 +297,32 @@ int main(void)
 	  if(check_color == true)
 	  {
 		  HAL_Delay(1000);
-		  if (op != NONE && steps > 0 && steps < 5000)
+		  switch (op)
+		  {
+				case NONE :
+					check_color = false;
+					command_ready = false;
+					uart_printf("ERROR\r\n");
+					break;
+				case FORWARD :
+					uart_printf("FORWARD\r\n");
+					break;
+				case REVERSE :
+					uart_printf("REVERSE\r\n");
+					break;
+				case TURN_LEFT :
+					uart_printf("TURN_LEFT\r\n");
+					break;
+				case TURN_RIGHT :
+					uart_printf("TURN_RIGHT\r\n");
+					break;
+				default :
+					break;
+
+		  }
+		  uart_printf("step: %d\r\n", steps);
+
+		  if (op != NONE && steps > 0 && steps <= 10000)
 		  {
 			  for (int i = 0; i < steps;)
 			  {
@@ -304,35 +334,19 @@ int main(void)
 					prev_us = now;
 
 					step_test(op);
+//					HAL_Delay(1);//half-step
 				}
 				  if(idx_change == true)
 				  	  i++;
-//				  HAL_Delay(1); // 마이크로스텝 속도 조절
 			  }
 			  step_stop(); // 끝나면 정지
 			  check_color = false;
-			  switch (op)
-			  {
-					case NONE :
-						uart_printf("NONE\r\n");
-						break;
-					case FORWARD :
-						uart_printf("FORWARD\r\n");
-						break;
-					case REVERSE :
-						uart_printf("REVERSE\r\n");
-						break;
-					case TURN_LEFT :
-						uart_printf("TURN_LEFT\r\n");
-						break;
-					case TURN_RIGHT :
-						uart_printf("TURN_RIGHT\r\n");
-						break;
-					default :
-			  }
+			  memset(rx_buf, 0, sizeof(rx_buf));
+
 		  }
 	  }
 
+	  /*
 	  if(check_color == true && cur_mode == 0)
 	  {
 		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
@@ -352,6 +366,10 @@ int main(void)
 		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
 		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
 		  uart_printf("--------------------------------\r\n");
+
+
+		  HAL_Delay(500);
+		  delay_flag = true;
 		  check_color = false;
 	  }
 
@@ -404,7 +422,7 @@ int main(void)
 			  }
 
 		  }
-	  }
+	  }*/
 //	  else
 //	  {
 //		  once_flag = 0;
@@ -626,7 +644,8 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
-//
+  HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(TIM2_IRQn);
   /* USER CODE END TIM2_Init 2 */
 
 }
@@ -759,10 +778,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4
                           |GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
