@@ -292,6 +292,7 @@ int main(void)
 ////		  check_color = false;
 //	  }
 
+
 	  parse_uart_command(); // 수신 명령 파싱 및 실행
 
 	  if(check_color == true)
@@ -317,7 +318,7 @@ int main(void)
 					uart_printf("TURN_RIGHT\r\n");
 					break;
 				default :
-					break;
+//					break;
 
 		  }
 		  uart_printf("step: %d\r\n", steps);
@@ -346,7 +347,7 @@ int main(void)
 		  }
 	  }
 
-	  /*
+/*
 	  if(check_color == true && cur_mode == 0)
 	  {
 		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);

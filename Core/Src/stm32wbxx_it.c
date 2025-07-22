@@ -301,8 +301,8 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  detected_left = COLOR_BLACK;
 	  total_step_init();
 	  delay_flag = false;
-  }
-  */
+  }*/
+
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
