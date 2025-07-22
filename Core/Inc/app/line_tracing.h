@@ -12,4 +12,14 @@
 #include "stm32wbxx_hal.h"
 
 
+typedef enum
+{
+	ON_LINE,
+	LEFT_OFF,
+	RIGHT_OFF,
+	LOST
+}LineState;
+
+void line_tracing_fsm(void);
+
 #endif /* INC_APP_LINE_TRACING_H_ */

@@ -33,6 +33,7 @@
 #include "flash.h"
 #include "step.h"
 #include "ir.h"
+#include "line_tracing.h"
 
 //#include "rtc.h"
 /* USER CODE END Includes */
@@ -91,6 +92,7 @@ color_t detected_right = COLOR_BLACK;
 StepOperation op = NONE;
 
 extern volatile bool tim16_irq;
+volatile bool line_tracing_mod = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -259,6 +261,7 @@ int main(void)
 
   step_init_all();
   step_stop();
+  step_set_period(1000);
 
 
   load_color_reference_table();
@@ -336,42 +339,33 @@ int main(void)
 		  }
 	  }
 */
-	  if(check_color == true)
-	  {
-		  if(ir_is_black())
-		  {
-			  rgb_set_color(COLOR_BLUE);
-		  }
-		  else
-		  {
-			  rgb_set_color(COLOR_WHITE);
-		  }
-		  uart_printf("ir_adc: %d\r\n", ir_read_adc());
-		  check_color = false;
-	  }
-
-
-/*
 	  if(check_color == true && cur_mode == 0)
 	  {
 		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
 		  right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
-
-		  uart_printf("[LEFT]  R:%u G:%u B:%u C:%u\r\n",
-		              left_color.red, left_color.green, left_color.blue, left_color.clear);
-
-		  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
-		              right_color.red, right_color.green, right_color.blue, right_color.clear);
 
 		  detected_left =
 				  classify_color(BH1745_ADDR_LEFT, left_color.red, left_color.green, left_color.blue, left_color.clear);
 		  detected_right =
 				  classify_color(BH1745_ADDR_RIGHT, right_color.red, right_color.green, right_color.blue, right_color.clear);
 
-		  uart_printf("[LEFT]Detected Color: %s\r\n", color_to_string(detected_left));
-		  uart_printf("[RIGHT]Detected Color: %s\r\n", color_to_string(detected_right));
-		  uart_printf("--------------------------------\r\n");
+		  uint16_t left_brightness, right_brightness = 0;
 
+		  left_brightness = calculate_brightness(left_color.red, left_color.green, left_color.blue);
+		  right_brightness = calculate_brightness(right_color.red, right_color.green, right_color.blue);
+
+		  uart_printf("-------------------------------------------------------\r\n");
+		  uart_printf("[LEFT ] R:%u G:%u B:%u C:%u\r\n",
+		              left_color.red, left_color.green, left_color.blue, left_color.clear);
+
+		  uart_printf("[RIGHT] R:%u G:%u B:%u C:%u\r\n",
+		              right_color.red, right_color.green, right_color.blue, right_color.clear);
+		  uart_printf("[LEFT ] Detected Color: %s\r\n", color_to_string(detected_left));
+		  uart_printf("[RIGHT] Detected Color: %s\r\n", color_to_string(detected_right));
+		  uart_printf("[LEFT ] brightness: %d\r\n", left_brightness);
+		  uart_printf("[RIGHT] brightness: %d\r\n", right_brightness);
+		  uart_printf("default offset: %d\r\n", left_brightness - right_brightness);
+		  uart_printf("-------------------------------------------------------\r\n");
 
 		  HAL_Delay(500);
 		  delay_flag = true;
@@ -427,13 +421,22 @@ int main(void)
 			  }
 
 		  }
-	  }*/
-//	  else
-//	  {
-//		  once_flag = 0;
-//	  }
-  }
+	  }
+
+	  if(line_tracing_mod == true)
+	  {
+		  uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+		  static uint64_t prev_us = 0;
+
+		  if(now - prev_us > 10)
+		  {
+			  prev_us = now;
+
+			  line_tracing_fsm();
+		  }
+	  }
   /* USER CODE END 3 */
+  }
 }
 
 /**

@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include "color.h"
 #include "step.h"
+#include "line_tracing.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -85,6 +86,7 @@ extern UART_HandleTypeDef huart1;
 extern color_t detected_left;
 extern color_t detected_right;
 extern volatile bool check_color;
+extern volatile bool line_tracing_mod;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -264,44 +266,57 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   HAL_TIM_IRQHandler(&htim16);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
-//  timer16_10us++;
-//  tim16_irq = true;
-//  rgb_set_color(detected_left);
-//
-//  uint16_t fix_step = 0;
-//
-//  if(delay_flag == true)
-//  {
-//	  switch (detected_left)
-//	    {
-//			case COLOR_RED :
-//				fix_step = 1000;
-//				step_test(FORWARD);
-//				break;
-//			case COLOR_ORANGE :
-//				fix_step = 1000;
-//				step_test(REVERSE);
-//			 	break;
-//			case COLOR_YELLOW :
-//				fix_step = 390;
-//				step_test(TURN_LEFT);
-//				break;
-//			case COLOR_GREEN :
-//				fix_step = 390;
-//				step_test(TURN_RIGHT);
-//				break;
-//			default :
-//				break;
-//	    }
-//  }
-//
-//  if(get_steps() > fix_step)
-//  {
-//	  step_stop();
-//	  detected_left = COLOR_BLACK;
-//	  total_step_init();
-//	  delay_flag = false;
-//  }
+  timer16_10us++;
+  tim16_irq = true;
+  rgb_set_color(detected_left);
+
+  uint16_t fix_step = 0;
+
+  if(delay_flag == true)
+  {
+	  switch (detected_left)
+	    {
+			case COLOR_RED :
+				fix_step = 1000;
+				step_drive(FORWARD);
+				break;
+			case COLOR_ORANGE :
+				fix_step = 1000;
+				step_drive(REVERSE);
+			 	break;
+			case COLOR_YELLOW :
+				fix_step = 390;
+				step_drive(TURN_LEFT);
+				break;
+			case COLOR_GREEN :
+				fix_step = 390;
+				step_drive(TURN_RIGHT);
+				break;
+			case COLOR_BLUE :
+				fix_step = 10000;
+				line_tracing_mod = true;
+				break;
+			case COLOR_PURPLE :
+				fix_step = 200;
+				step_drive(FORWARD);
+				break;
+			case COLOR_GRAY :
+				fix_step = 1900;
+				step_drive(FORWARD);
+				break;
+			default :
+				break;
+	    }
+  }
+
+  if(get_current_steps() > fix_step)
+  {
+	  step_stop();
+	  detected_left = COLOR_BLACK;
+	  total_step_init();
+	  delay_flag = false;
+	  line_tracing_mod = false;
+  }
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }

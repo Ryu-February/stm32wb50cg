@@ -63,5 +63,6 @@ color_t classify_color(uint8_t left_right, uint16_t r, uint16_t g, uint16_t b, u
 const char* color_to_string(color_t color);
 void load_color_reference_table(void);
 void debug_print_color_reference_table(void);
+uint32_t calculate_brightness(uint16_t r, uint16_t g, uint16_t b);
 
 #endif /* INC_DRIVER_COLOR_H_ */

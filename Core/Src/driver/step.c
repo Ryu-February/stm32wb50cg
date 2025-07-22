@@ -162,7 +162,7 @@ void step_forward(StepMotor *m)
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
   idx_change = false;
-  if(now - m->prev_time_us < 1000)
+  if(now - m->prev_time_us < m->period_us)
   {
 	  return;
   }
@@ -182,7 +182,7 @@ void step_reverse(StepMotor *m)
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
   idx_change = false;
-  if(now - m->prev_time_us < 1000)
+  if(now - m->prev_time_us < m->period_us)
   {
 	return;
   }
@@ -252,7 +252,7 @@ void step_idx_init(void)
 	step_motor_right.step_idx = 0;
 }
 
-uint32_t get_steps(void)
+uint32_t get_current_steps(void)
 {
 	return (uint32_t) step_motor_left.total_step;
 }
@@ -263,7 +263,7 @@ void total_step_init(void)
 	step_motor_right.total_step = 0;
 }
 
-void step_test(StepOperation op)
+void step_drive(StepOperation op)
 {
 	if(op == FORWARD)
 	{
@@ -285,10 +285,26 @@ void step_test(StepOperation op)
 		step_motor_left.forward(&step_motor_left);
 		step_motor_right.reverse(&step_motor_right);
 	}
+	else if(op == STOP)
+	{
+		step_motor_left.brake(&step_motor_left);
+		step_motor_right.brake(&step_motor_right);
+	}
 }
 
 void step_stop(void)
 {
 	step_motor_left.brake(&step_motor_left);
 	step_motor_right.brake(&step_motor_right);
+}
+
+void step_set_period(uint16_t period_us)
+{
+	step_motor_left.period_us = period_us;
+	step_motor_right.period_us = period_us;
+}
+
+void step_drive_ratio(uint8_t left_speed, uint8_t right_speed)  // 비율 기반 회전 제어
+{
+
 }

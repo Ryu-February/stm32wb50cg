@@ -107,7 +107,7 @@ rgb_ratio_t get_rgb_ratio(uint16_t r, uint16_t g, uint16_t b)
         result.b_ratio = b / total;
     }
 
-    uart_printf("[pr]: %1f [pg]: %1f [pb]: %1f\r\n", result.r_ratio, result.g_ratio, result.b_ratio);
+//    uart_printf("[pr]: %1f [pg]: %1f [pb]: %1f\r\n", result.r_ratio, result.g_ratio, result.b_ratio);
 
     return result;
 }
@@ -209,4 +209,11 @@ void debug_print_color_reference_table(void)
         uart_printf("[%d | %s] [R]: %1.3f, [G]: %1.3f, [B]: %1.3f\r\n",
                     i, color_to_string(c), r.r_ratio, r.g_ratio, r.b_ratio);
     }
+}
+
+uint32_t calculate_brightness(uint16_t r, uint16_t g, uint16_t b)
+{
+//    return 0.2126f * r + 0.7152f * g + 0.0722f * b;
+
+    return (218 * r + 732 * g + 74 * b) >> 10;
 }

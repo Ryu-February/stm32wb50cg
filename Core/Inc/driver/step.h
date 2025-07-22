@@ -77,7 +77,8 @@ typedef enum
     FORWARD,
     REVERSE,
     TURN_LEFT,
-    TURN_RIGHT
+    TURN_RIGHT,
+	STOP
 } StepOperation;
 
 typedef enum
@@ -125,12 +126,14 @@ void step_init_all(void);
 void roe_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
 void ms_operate(uint8_t m_pin, uint8_t speed, uint8_t m_dir);
 
-uint32_t get_steps(void);
+uint32_t get_current_steps(void);
 void total_step_init(void);
-void step_test(StepOperation  op);
+void step_drive(StepOperation op);
 
 void step_idx_init(void);
 void step_stop(void);
+void step_drive_ratio(uint8_t left_speed, uint8_t right_speed);
+void step_set_period(uint16_t period_us);
 
 
 #endif /* INC_DRIVER_STEP_H_ */
