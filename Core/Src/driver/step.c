@@ -162,7 +162,7 @@ void step_forward(StepMotor *m)
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
   idx_change = false;
-  if(now - m->prev_time_us < 500)
+  if(now - m->prev_time_us < 1000)
   {
 	  return;
   }
@@ -182,7 +182,7 @@ void step_reverse(StepMotor *m)
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
   idx_change = false;
-  if(now - m->prev_time_us < 500)
+  if(now - m->prev_time_us < 1000)
   {
 	return;
   }
