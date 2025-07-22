@@ -33,6 +33,9 @@
 reference_entry_t color_reference_tbl_left[COLOR_COUNT];
 reference_entry_t color_reference_tbl_right[COLOR_COUNT];
 
+extern uint16_t offset_black;
+extern uint16_t offset_white;
+
 
 
 void bh1745_write_reg(uint8_t dev_addr, uint8_t reg, uint8_t data)
@@ -78,9 +81,10 @@ bh1745_color_data_t bh1745_read_rgbc(uint8_t dev_addr)
 
 void save_color_reference(uint8_t sensor_side, color_t color, uint16_t r, uint16_t g, uint16_t b)
 {
-    rgb_ratio_t ratio = get_rgb_ratio(r, g, b);
+    rgb_ratio_t ratio	= get_rgb_ratio(r, g, b);
+    uint16_t 	offset	= calculate_brightness(r, g, b);
 
-    reference_entry_t entry = { .ratio = ratio, .color = color };
+    reference_entry_t entry = { .ratio = ratio, .color = color, .offset = offset };
 
     if (sensor_side == BH1745_ADDR_LEFT)
     {
@@ -216,4 +220,15 @@ uint32_t calculate_brightness(uint16_t r, uint16_t g, uint16_t b)
 //    return 0.2126f * r + 0.7152f * g + 0.0722f * b;
 
     return (218 * r + 732 * g + 74 * b) >> 10;
+}
+
+void calculate_color_brightness_offset(void)
+{
+	offset_black = (color_reference_tbl_left[COLOR_BLACK].offset > color_reference_tbl_right[COLOR_BLACK].offset) ?
+			color_reference_tbl_left[COLOR_BLACK].offset - color_reference_tbl_right[COLOR_BLACK].offset :
+			color_reference_tbl_right[COLOR_BLACK].offset - color_reference_tbl_left[COLOR_BLACK].offset;
+
+	offset_white = (color_reference_tbl_left[COLOR_WHITE].offset > color_reference_tbl_right[COLOR_WHITE].offset) ?
+			color_reference_tbl_left[COLOR_WHITE].offset - color_reference_tbl_right[COLOR_WHITE].offset :
+			color_reference_tbl_right[COLOR_WHITE].offset - color_reference_tbl_left[COLOR_WHITE].offset;
 }

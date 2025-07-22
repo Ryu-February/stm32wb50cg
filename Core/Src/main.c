@@ -93,6 +93,9 @@ StepOperation op = NONE;
 
 extern volatile bool tim16_irq;
 volatile bool line_tracing_mod = false;
+
+uint16_t offset_black = 0;
+uint16_t offset_white = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -263,8 +266,8 @@ int main(void)
   step_stop();
   step_set_period(1000);
 
-
   load_color_reference_table();
+  calculate_color_brightness_offset();
   debug_print_color_reference_table();
 
 
@@ -425,15 +428,7 @@ int main(void)
 
 	  if(line_tracing_mod == true)
 	  {
-		  uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
-		  static uint64_t prev_us = 0;
-
-		  if(now - prev_us > 10)
-		  {
-			  prev_us = now;
-
-			  line_tracing_fsm();
-		  }
+		  line_tracing_fsm();
 	  }
   /* USER CODE END 3 */
   }

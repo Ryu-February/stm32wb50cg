@@ -48,6 +48,7 @@ typedef struct {
 typedef struct {
     rgb_ratio_t ratio;
     color_t color;
+    uint16_t offset;
 } reference_entry_t;
 
 void bh1745_write_reg(uint8_t dev_addr, uint8_t reg, uint8_t data);
@@ -64,5 +65,7 @@ const char* color_to_string(color_t color);
 void load_color_reference_table(void);
 void debug_print_color_reference_table(void);
 uint32_t calculate_brightness(uint16_t r, uint16_t g, uint16_t b);
+void calculate_color_brightness_offset(void);
+
 
 #endif /* INC_DRIVER_COLOR_H_ */
