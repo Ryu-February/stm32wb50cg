@@ -48,7 +48,7 @@ typedef struct {
 typedef struct {
     rgb_ratio_t ratio;
     color_t color;
-    uint16_t offset;
+    uint64_t offset;//flash 메모리에 저장할 때 8바이트 단위로 맞춰야 해서 uint64_t로 구조체 총합 24바이트로 맞춤
 } reference_entry_t;
 
 void bh1745_write_reg(uint8_t dev_addr, uint8_t reg, uint8_t data);

@@ -87,6 +87,8 @@ int steps = 0;
 extern volatile uint64_t tim2_us;
 extern volatile bool idx_change;
 extern volatile unsigned char cur_mode;
+extern volatile bool flag_step_drive;
+extern volatile StepOperation step_op;
 color_t detected_left = COLOR_BLACK;
 color_t detected_right = COLOR_BLACK;
 StepOperation op = NONE;
@@ -94,8 +96,10 @@ StepOperation op = NONE;
 extern volatile bool tim16_irq;
 volatile bool line_tracing_mod = false;
 
+uint8_t  offset_side = 0;
 uint16_t offset_black = 0;
 uint16_t offset_white = 0;
+uint16_t offset_average = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -264,7 +268,7 @@ int main(void)
 
   step_init_all();
   step_stop();
-  step_set_period(1000);
+  step_set_period(1000, 1000);
 
   load_color_reference_table();
   calculate_color_brightness_offset();
@@ -425,13 +429,32 @@ int main(void)
 
 		  }
 	  }
+//	  uart_printf("hi\r\n");
 
 	  if(line_tracing_mod == true)
 	  {
-		  line_tracing_fsm();
+//		  line_tracing_fsm();
+		  line_tracing_pid();
 	  }
-  /* USER CODE END 3 */
+
+//	    if (flag_step_drive)
+//	    {
+//	    	uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+//			static uint64_t prev_us = 0;
+//
+//			if(now - prev_us > 10)
+//			{
+//				flag_step_drive = false;  // 사용 후 바로 클리어
+//				if (step_op != NONE)
+//				{
+//					step_drive(step_op);  // 안전하게 main loop에서 실행
+//				}
+//				prev_us = now;
+//			}
+//
+//	    }
   }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -729,7 +752,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 63;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 9;
+  htim16.Init.Period = 99;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;

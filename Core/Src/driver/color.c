@@ -7,12 +7,14 @@
 
 
 
+#include <stdlib.h>
 #include "i2c.h"
 #include "uart.h"
 #include <math.h>
 #include "color.h"
 #include "rgb.h"
 #include "flash.h"
+#include "step.h"
 
 
 //const bh1745_color_data_t reference_colors[COLOR_COUNT] = {
@@ -33,8 +35,10 @@
 reference_entry_t color_reference_tbl_left[COLOR_COUNT];
 reference_entry_t color_reference_tbl_right[COLOR_COUNT];
 
+extern uint8_t offset_side;
 extern uint16_t offset_black;
 extern uint16_t offset_white;
+extern uint16_t offset_average;
 
 
 
@@ -82,7 +86,7 @@ bh1745_color_data_t bh1745_read_rgbc(uint8_t dev_addr)
 void save_color_reference(uint8_t sensor_side, color_t color, uint16_t r, uint16_t g, uint16_t b)
 {
     rgb_ratio_t ratio	= get_rgb_ratio(r, g, b);
-    uint16_t 	offset	= calculate_brightness(r, g, b);
+    uint64_t 	offset	= calculate_brightness(r, g, b);
 
     reference_entry_t entry = { .ratio = ratio, .color = color, .offset = offset };
 
@@ -213,6 +217,9 @@ void debug_print_color_reference_table(void)
         uart_printf("[%d | %s] [R]: %1.3f, [G]: %1.3f, [B]: %1.3f\r\n",
                     i, color_to_string(c), r.r_ratio, r.g_ratio, r.b_ratio);
     }
+    uart_printf("=== BRIGHTNESS OFFSET TABLE ===\r\n");
+    uart_printf("offset_black: %d | offset_white: %d\r\n", offset_black, offset_white);
+	uart_printf("offset_aver: %d\r\n", offset_average);
 }
 
 uint32_t calculate_brightness(uint16_t r, uint16_t g, uint16_t b)
@@ -224,11 +231,10 @@ uint32_t calculate_brightness(uint16_t r, uint16_t g, uint16_t b)
 
 void calculate_color_brightness_offset(void)
 {
-	offset_black = (color_reference_tbl_left[COLOR_BLACK].offset > color_reference_tbl_right[COLOR_BLACK].offset) ?
-			color_reference_tbl_left[COLOR_BLACK].offset - color_reference_tbl_right[COLOR_BLACK].offset :
-			color_reference_tbl_right[COLOR_BLACK].offset - color_reference_tbl_left[COLOR_BLACK].offset;
+    offset_black = abs(color_reference_tbl_left[COLOR_BLACK].offset - color_reference_tbl_right[COLOR_BLACK].offset);
+    offset_white = abs(color_reference_tbl_left[COLOR_WHITE].offset - color_reference_tbl_right[COLOR_WHITE].offset);
 
-	offset_white = (color_reference_tbl_left[COLOR_WHITE].offset > color_reference_tbl_right[COLOR_WHITE].offset) ?
-			color_reference_tbl_left[COLOR_WHITE].offset - color_reference_tbl_right[COLOR_WHITE].offset :
-			color_reference_tbl_right[COLOR_WHITE].offset - color_reference_tbl_left[COLOR_WHITE].offset;
+    offset_side = (color_reference_tbl_left[COLOR_BLACK].offset > color_reference_tbl_right[COLOR_BLACK].offset)
+    					? LEFT : RIGHT;
+    offset_average = (offset_black + offset_white) / 2;
 }

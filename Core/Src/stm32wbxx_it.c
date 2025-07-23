@@ -63,6 +63,9 @@ volatile bool uart_enable = false;
 volatile bool pb0_pressed = false;
 volatile bool tim16_irq = false;
 
+volatile bool flag_step_drive = false;
+volatile StepOperation step_op = NONE;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -274,27 +277,37 @@ void TIM1_UP_TIM16_IRQHandler(void)
 
   if(delay_flag == true)
   {
+	  flag_step_drive = true;
 	  switch (detected_left)
 	    {
 			case COLOR_RED :
 				fix_step = 1000;
 				step_drive(FORWARD);
+				step_op = FORWARD;
 				break;
 			case COLOR_ORANGE :
 				fix_step = 1000;
 				step_drive(REVERSE);
+				step_op = REVERSE;
 			 	break;
 			case COLOR_YELLOW :
 				fix_step = 390;
 				step_drive(TURN_LEFT);
+				step_op = TURN_LEFT;
 				break;
 			case COLOR_GREEN :
 				fix_step = 390;
 				step_drive(TURN_RIGHT);
+				step_op = TURN_RIGHT;
 				break;
 			case COLOR_BLUE :
 				fix_step = 10000;
+//				step_op = FORWARD;
 				line_tracing_mod = true;
+				step_drive(FORWARD);
+//				line_tracing_mod = true;
+//				line_tracing_pid();
+
 				break;
 			case COLOR_PURPLE :
 				fix_step = 200;
@@ -305,6 +318,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				step_drive(FORWARD);
 				break;
 			default :
+				step_op = NONE;
 				break;
 	    }
   }
@@ -316,6 +330,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  total_step_init();
 	  delay_flag = false;
 	  line_tracing_mod = false;
+	  step_op = NONE;
   }
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */

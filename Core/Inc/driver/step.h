@@ -50,7 +50,7 @@ typedef struct StepMotor
 
   uint8_t dir;
   uint8_t step_idx;
-  uint64_t period_us;
+  uint32_t period_us;
   uint64_t prev_time_us;
 
   uint32_t total_step;
@@ -132,8 +132,8 @@ void step_drive(StepOperation op);
 
 void step_idx_init(void);
 void step_stop(void);
-void step_drive_ratio(uint8_t left_speed, uint8_t right_speed);
-void step_set_period(uint16_t period_us);
+void step_drive_ratio(uint16_t left_speed, uint16_t right_speed);
+void step_set_period(uint16_t left_period, uint16_t right_period);
 
 
 #endif /* INC_DRIVER_STEP_H_ */

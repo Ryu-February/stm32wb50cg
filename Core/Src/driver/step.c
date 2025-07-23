@@ -11,6 +11,7 @@
 
 volatile bool idx_change = false;
 
+extern volatile uint32_t timer16_10us;
 extern volatile uint32_t timer17_ms;
 extern volatile uint64_t tim2_us;
 extern TIM_HandleTypeDef htim2;  // 10kHz interrupt for microstep PWM
@@ -79,7 +80,7 @@ DEFINE_STEP_MOTOR(step_motor_right,
 );
 
 #if (_USE_STEP_MODE == _STEP_MODE_HALF)
-static const uint8_t step_table[8][4] = {
+static const uint8_t step_table[8][4] = {//얘도 풀스탭과 마찬가지로 72°를 돎(step angle이 18°를 반으로 쪼갠 거임)
 	{1,0,1,0},
 	{0,0,1,0},
 	{0,1,1,0},
@@ -91,7 +92,7 @@ static const uint8_t step_table[8][4] = {
 };
 #elif(_USE_STEP_MODE == _STEP_MODE_FULL)
 
-static const uint8_t step_table[4][4] = {
+static const uint8_t step_table[4][4] = {//72°를 돎(step angle이 18°라서)
 	{1,0,1,0},  // A+ & B+
 	{0,1,1,0},  // A- & B+
 	{0,1,0,1},  // A- & B-
@@ -103,6 +104,7 @@ static const uint8_t step_table[4][4] = {
 
 //sin table
 //360도를 32스텝으로 쪼갰을 때 11.25가 나오는데 11.25도의 간격을 pwm으로 표현하면 이렇게 나옴
+//여기서 말하는 360은 전류 벡터의 회전 경로가 360도라는 거고 모터는 동일하게 72도를 기준으로 잡음
 const uint8_t step_table[32] = {			//sin(degree) -> pwm
   128, 152, 176, 198, 218, 234, 245, 253,
   255, 253, 245, 234, 218, 198, 176, 152,
@@ -161,6 +163,7 @@ void step_forward(StepMotor *m)
 #else
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+//  uint64_t now = timer16_10us;
   idx_change = false;
   if(now - m->prev_time_us < m->period_us)
   {
@@ -181,6 +184,7 @@ void step_reverse(StepMotor *m)
 #else
   apply_step(m);
   uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+//  uint64_t now = timer16_10us;
   idx_change = false;
   if(now - m->prev_time_us < m->period_us)
   {
@@ -298,13 +302,14 @@ void step_stop(void)
 	step_motor_right.brake(&step_motor_right);
 }
 
-void step_set_period(uint16_t period_us)
+void step_set_period(uint16_t left_period, uint16_t right_period)
 {
-	step_motor_left.period_us = period_us;
-	step_motor_right.period_us = period_us;
+	step_motor_left.period_us = left_period;
+	step_motor_right.period_us = right_period;
+//	uart_printf("left_period: %d | right_period: %d\r\n", step_motor_left.period_us, step_motor_right.period_us);
 }
 
-void step_drive_ratio(uint8_t left_speed, uint8_t right_speed)  // 비율 기반 회전 제어
+void step_drive_ratio(uint16_t left_speed, uint16_t right_speed)  // 비율 기반 회전 제어
 {
-
+	step_set_period(left_speed, right_speed);
 }

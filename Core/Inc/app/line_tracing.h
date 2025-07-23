@@ -21,5 +21,6 @@ typedef enum
 }LineState;
 
 void line_tracing_fsm(void);
+void line_tracing_pid(void);
 
 #endif /* INC_APP_LINE_TRACING_H_ */
