@@ -301,10 +301,11 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				step_op = TURN_RIGHT;
 				break;
 			case COLOR_BLUE :
-				fix_step = 10000;
+				fix_step = 30000;
 //				step_op = FORWARD;
 				line_tracing_mod = true;
 				step_drive(FORWARD);
+//				step_drive(STOP);
 //				line_tracing_mod = true;
 //				line_tracing_pid();
 

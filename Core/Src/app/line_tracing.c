@@ -17,9 +17,9 @@ extern uint16_t offset_average;
 extern volatile uint32_t timer17_ms;
 
 // PID 계수
-float Kp = 30;
+float Kp = 60;
 float Ki = 0.0;
-float Kd = 10;
+float Kd = 20;
 
 float prev_error = 0;
 float integral = 0;
@@ -91,7 +91,7 @@ void line_tracing_pid(void)
     float output = Kp * error + Ki * integral + Kd * derivative;
     prev_error = error;
 
-    float base_speed = 3000;
+    float base_speed = 5000;
     float left_speed = base_speed + output;  // 보정 강도 조정
     float right_speed = base_speed - output;
 

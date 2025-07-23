@@ -433,8 +433,15 @@ int main(void)
 
 	  if(line_tracing_mod == true)
 	  {
+		  uint64_t now = timer17_ms;
+		  static uint64_t prev_ms = 0;
+		  if(now - prev_ms > 5)
+		  {
+			  prev_ms = now;
+			  line_tracing_pid();
+		  }
 //		  line_tracing_fsm();
-		  line_tracing_pid();
+
 	  }
 
 //	    if (flag_step_drive)
