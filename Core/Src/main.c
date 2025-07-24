@@ -34,6 +34,7 @@
 #include "step.h"
 #include "ir.h"
 #include "line_tracing.h"
+#include "queue.h"
 
 //#include "rtc.h"
 /* USER CODE END Includes */
@@ -80,7 +81,7 @@ extern volatile uint64_t timer2_1us;
 extern volatile uint32_t timer16_10us;
 extern volatile uint32_t timer17_ms;
 extern volatile bool delay_flag;
-uint8_t rx_buf[32];       // 수신 버퍼
+uint8_t rx_buf[64];       // 수신 버퍼
 uint8_t rx_index = 0;     // 수신 인덱스
 bool command_ready = false; // 파싱 준비 완료 flag
 int steps = 0;
@@ -102,6 +103,8 @@ uint16_t offset_white = 0;
 uint16_t offset_average = 0;
 
 bh1745_color_data_t line_left, line_right;
+bool receiving_command = false;
+int total_steps = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,7 +118,7 @@ static void MX_RTC_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
-
+void parse_uart_command(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -125,58 +128,78 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1)
     {
-        uint8_t byte = rx_buf[rx_index];
+    	uint8_t byte = rx_buf[rx_index];
 
-        if (byte == '>')  // 끝 문자
+        if (byte == '[')  // 시작 문자
         {
-            command_ready = true;
-            rx_buf[rx_index + 1] = '\0';  // null-terminate
             rx_index = 0;
+            receiving_command = true;
         }
-        else
+
+        if (receiving_command)
         {
             if (rx_index < sizeof(rx_buf) - 2)
-                rx_index++;
+            {
+                rx_buf[rx_index++] = byte;
+            }
+
+            if (byte == ']')  // 끝 문자 수신
+            {
+                rx_buf[rx_index] = '\0';
+                rx_index = 0;
+                receiving_command = false;
+                command_ready = true;
+            }
         }
 
-        HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);  // 다음 바이트 준비
+        HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);  // 다음 바이트 수신
     }
 }
 
 void parse_uart_command(void)
 {
-    if (!command_ready)
-        return;
+	if(!command_ready)
+		return;
 
-    command_ready = false;
+	command_ready = false;
 
-    if (rx_buf[0] == '<' && rx_buf[1] != '\0')
+    int i = 0;
+    while (rx_buf[i] != '\0')
     {
-        char dir = rx_buf[1];
-        steps = atoi((char*)&rx_buf[2]);  // 예: "100"
-
-        if (dir == 'F')
-		{
-			op = FORWARD;
-			detected_left = COLOR_RED;
-		}
-        else if (dir == 'B')
+        if (rx_buf[i] == '<' && rx_buf[i+1] != '\0')
         {
-        	op = REVERSE;
-        	detected_left = COLOR_BLUE;
+            char dir = rx_buf[i+1];
+            int j = i + 2;
+            char num_buf[6] = {0};
+            int k = 0;
+
+            while (rx_buf[j] != '\0' && rx_buf[j] != '>' && k < 5)
+                num_buf[k++] = rx_buf[j++];
+
+            int step = atoi(num_buf);
+            total_steps += step;
+            StepOperation op = NONE;
+
+            if (dir == 'F') op = FORWARD;
+            else if (dir == 'B') op = REVERSE;
+            else if (dir == 'L') op = TURN_LEFT;
+            else if (dir == 'R') op = TURN_RIGHT;
+
+            if (op != NONE && step > 0 && step <= 10000)
+            {
+                enqueue_command(op, step);
+                uart_printf("Enqueued: %c%d\r\n", dir, step);
+            }
+
+            i = j;  // 다음 '<' 탐색
         }
-        else if (dir == 'L')
-		{
-			op = TURN_LEFT;
-			detected_left = COLOR_GREEN;
-		}
-        else if (dir == 'R')
-		{
-			op = TURN_RIGHT;
-			detected_left = COLOR_WHITE;
-		}
+        else
+        {
+            i++;
+        }
     }
-    uart_printf("rx_buffer: %s\r\n", rx_buf);
+
+    memset(rx_buf, 0, sizeof(rx_buf));
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -286,7 +309,9 @@ int main(void)
 
   bh1745_color_data_t left_color, right_color;
 
-
+  Command current_cmd;
+  bool executing = false;
+  int executed_steps = 0;
 
   while (1)
   {
@@ -294,61 +319,82 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-/*
+
 	  parse_uart_command(); // 수신 명령 파싱 및 실행
 
-	  if(check_color == true)
+	  if (!executing)
 	  {
-		  HAL_Delay(1000);
-		  switch (op)
+		  if (dequeue_command(&current_cmd))
 		  {
-				case NONE :
-					check_color = false;
-					command_ready = false;
-					uart_printf("ERROR\r\n");
-					break;
-				case FORWARD :
-					uart_printf("FORWARD\r\n");
-					break;
-				case REVERSE :
-					uart_printf("REVERSE\r\n");
-					break;
-				case TURN_LEFT :
-					uart_printf("TURN_LEFT\r\n");
-					break;
-				case TURN_RIGHT :
-					uart_printf("TURN_RIGHT\r\n");
-					break;
-				default :
-//					break;
-
+			  executing = true;
+			  executed_steps = 0;
+//			  check_color = true;
+			  uart_printf("START %d step (%d)\r\n", current_cmd.op, current_cmd.steps);
 		  }
-		  uart_printf("step: %d\r\n", steps);
+	 }
 
-		  if (op != NONE && steps > 0 && steps <= 10000)
-		  {
-			  for (int i = 0; i < steps;)
-			  {
-				uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
-				static uint64_t prev_us = 0;
+	  if(check_color == true && executing)
+	  {
+	      HAL_Delay(1000);
 
-				if(now - prev_us > 10)
-				{
-					prev_us = now;
+	      switch (current_cmd.op)
+	      {
+	          case NONE :
+	              check_color = false;
+	              command_ready = false;
+	              uart_printf("ERROR\r\n");
+	              break;
+	          case FORWARD :
+	              uart_printf("FORWARD\r\n");
+	              break;
+	          case REVERSE :
+	              uart_printf("REVERSE\r\n");
+	              break;
+	          case TURN_LEFT :
+	              uart_printf("TURN_LEFT\r\n");
+	              break;
+	          case TURN_RIGHT :
+	              uart_printf("TURN_RIGHT\r\n");
+	              break;
+	          default :
+	              uart_printf("UNKNOWN CMD\r\n");
+	              break;
+	      }
 
-					step_test(op);
-//					HAL_Delay(1);//half-step
-				}
-				  if(idx_change == true)
-				  	  i++;
-			  }
-			  step_stop(); // 끝나면 정지
-			  check_color = false;
-			  memset(rx_buf, 0, sizeof(rx_buf));
+	      uart_printf("step: %d\r\n", current_cmd.steps);
 
-		  }
+	      if (current_cmd.op != NONE && current_cmd.steps > 0 && current_cmd.steps <= 10000)
+	      {
+	          for (int i = 0; i < current_cmd.steps;)
+	          {
+	              uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+	              static uint64_t prev_us = 0;
+
+	              if(now - prev_us > 10)
+	              {
+	                  prev_us = now;
+	                  step_drive(current_cmd.op);
+	              }
+
+	              if(idx_change == true)
+	              {
+	                  idx_change = false;
+	                  i++;
+	                  if(total_steps < i)
+	                  {
+	                	  check_color = false;
+	                  }
+	              }
+	          }
+
+	          step_stop();
+//	          check_color = false;
+	          memset(rx_buf, 0, sizeof(rx_buf));
+	          executing = false;
+	      }
 	  }
-*/
+
+	  /*
 	  if(check_color == true && cur_mode == 0)
 	  {
 		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
@@ -439,7 +485,7 @@ int main(void)
 		  line_left  = line_tracing_read_rgb(BH1745_ADDR_LEFT);
 		  line_right = line_tracing_read_rgb(BH1745_ADDR_RIGHT);
 		  line_tracing_pid();
-	  }
+	  }*/
 
 //	    if (flag_step_drive)
 //	    {

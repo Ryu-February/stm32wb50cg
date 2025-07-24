@@ -114,10 +114,10 @@ void line_tracing_pid(void)
 
 		step_drive_ratio(left_speed, right_speed);  // 비율 기반 회전 제어
 
-		uart_printf("left_bightness: %d, right_brightness: %d\r\n", left_brightness, right_brightness);
-		uart_printf("error: %.2f | prev_error: %.2f\r\n", error, prev_error);
-		uart_printf("output: %.2f\r\n", output);
-		uart_printf("left_speed: %.2f, right_speed: %.2f\r\n", left_speed, right_speed);
+//		uart_printf("left_bightness: %d, right_brightness: %d\r\n", left_brightness, right_brightness);
+//		uart_printf("error: %.2f | prev_error: %.2f\r\n", error, prev_error);
+//		uart_printf("output: %.2f\r\n", output);
+//		uart_printf("left_speed: %.2f, right_speed: %.2f\r\n", left_speed, right_speed);
 	}
 //    step_drive(FORWARD);
 }

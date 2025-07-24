@@ -272,7 +272,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
   timer16_10us++;
   tim16_irq = true;
   rgb_set_color(detected_left);
-
+/*
   uint16_t fix_step = 0;
 
   if(delay_flag == true)
@@ -331,7 +331,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  line_tracing_mod = false;
 	  step_op = NONE;
   }
-
+*/
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
