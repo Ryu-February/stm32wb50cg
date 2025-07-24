@@ -20,9 +20,9 @@ extern bh1745_color_data_t line_left, line_right;
 extern volatile StepOperation step_op;
 
 // PID 계수
-float Kp = 30;
+float Kp = 10;
 float Ki = 0.0;
-float Kd = 30;
+float Kd = 10;
 
 float prev_error = 0;
 float integral = 0;
@@ -100,21 +100,21 @@ void line_tracing_pid(void)
 	    float output = Kp * error + Ki * integral + Kd * derivative;
 	    prev_error = error;
 
-	    float base_speed = 2500;
+	    float base_speed = 1500;
 	    float left_speed = base_speed + output;  // 보정 강도 조정
 	    float right_speed = base_speed - output;
 	    if(abs(output) < 200)
 	    {
-	    	left_speed = 1000;
-	    	right_speed = 1000;
+	    	left_speed = 1500;
+	    	right_speed = 1500;
 	    }
 
-		if(left_speed > 3000)	left_speed = 3000;
-		if(right_speed > 3000)	right_speed = 3000;
-		if(left_speed < 600)	left_speed = 600;
-		if(right_speed < 600)	right_speed = 600;
+		if(left_speed > 2500)	left_speed = 2500;
+		if(right_speed > 2500)	right_speed = 2500;
+		if(left_speed < 500)	left_speed = 500;
+		if(right_speed < 500)	right_speed = 500;
 
-		if(left_speed < 1000 || right_speed < 1000)
+		if(left_speed < 800 || right_speed < 800)
 		{
 			if(left_speed < right_speed)
 				step_op = TURN_RIGHT;
