@@ -10,6 +10,7 @@
 
 
 #include "stm32wbxx_hal.h"
+#include "color.h"
 
 
 typedef enum
@@ -22,5 +23,6 @@ typedef enum
 
 void line_tracing_fsm(void);
 void line_tracing_pid(void);
+bh1745_color_data_t line_tracing_read_rgb(uint8_t color_addr);
 
 #endif /* INC_APP_LINE_TRACING_H_ */

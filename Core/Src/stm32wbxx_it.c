@@ -305,10 +305,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 //				step_op = FORWARD;
 				line_tracing_mod = true;
 				step_drive(FORWARD);
-//				step_drive(STOP);
-//				line_tracing_mod = true;
 //				line_tracing_pid();
-
 				break;
 			case COLOR_PURPLE :
 				fix_step = 200;
@@ -329,6 +326,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  step_stop();
 	  detected_left = COLOR_BLACK;
 	  total_step_init();
+	  step_idx_init();
 	  delay_flag = false;
 	  line_tracing_mod = false;
 	  step_op = NONE;
@@ -368,27 +366,17 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   }
 
 
-//  if(++timer17_uart_ms >= 500)
+//  if(line_tracing_mod == true)
 //  {
-//	  timer17_uart_ms = 0;
-//	  uart_enable = true;
+//	  uint32_t now = timer17_ms;
+//	  static uint32_t prev = 0;
+//
+//	  if(now - prev > 100)
+//	  {
+//		  prev = now;
+//		  line_tracing_pid();
+//	  }
 //  }
-
-//  static int cnt = 0;
-//
-//
-//
-//	if(++cnt >= 1000)
-//	{
-//		cnt = 0;
-//		i++;
-//
-//		if(i > COLOR_COUNT)
-//		{
-//			i = 0;
-//		}
-//	}
-
   /* USER CODE END TIM1_TRG_COM_TIM17_IRQn 1 */
 }
 

@@ -100,6 +100,8 @@ uint8_t  offset_side = 0;
 uint16_t offset_black = 0;
 uint16_t offset_white = 0;
 uint16_t offset_average = 0;
+
+bh1745_color_data_t line_left, line_right;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -285,6 +287,7 @@ int main(void)
   bh1745_color_data_t left_color, right_color;
 
 
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -433,15 +436,9 @@ int main(void)
 
 	  if(line_tracing_mod == true)
 	  {
-		  uint64_t now = timer17_ms;
-		  static uint64_t prev_ms = 0;
-		  if(now - prev_ms > 5)
-		  {
-			  prev_ms = now;
-			  line_tracing_pid();
-		  }
-//		  line_tracing_fsm();
-
+		  line_left  = line_tracing_read_rgb(BH1745_ADDR_LEFT);
+		  line_right = line_tracing_read_rgb(BH1745_ADDR_RIGHT);
+		  line_tracing_pid();
 	  }
 
 //	    if (flag_step_drive)
@@ -759,7 +756,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 63;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 99;
+  htim16.Init.Period = 29;//이거 9가 10us, 99가 100us임 10us로 할 때 while 문이 안 돎
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
