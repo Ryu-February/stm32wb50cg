@@ -17,6 +17,7 @@ extern uint8_t  offset_side;
 extern uint16_t offset_average;
 extern volatile uint32_t timer17_ms;
 extern bh1745_color_data_t line_left, line_right;
+extern volatile StepOperation step_op;
 
 // PID 계수
 float Kp = 30;
@@ -74,6 +75,7 @@ void line_tracing_pid(void)
 {
 	uint32_t cur_ms = timer17_ms;
 	static uint32_t prev_ms = 0;
+	step_op = FORWARD;
 
 	if(cur_ms - prev_ms > 10)
 	{
@@ -103,14 +105,27 @@ void line_tracing_pid(void)
 	    float right_speed = base_speed - output;
 	    if(abs(output) < 200)
 	    {
-	    	left_speed = base_speed;
-	    	right_speed = base_speed;
+	    	left_speed = 1000;
+	    	right_speed = 1000;
 	    }
 
 		if(left_speed > 3000)	left_speed = 3000;
 		if(right_speed > 3000)	right_speed = 3000;
 		if(left_speed < 600)	left_speed = 600;
 		if(right_speed < 600)	right_speed = 600;
+
+		if(left_speed < 1000 || right_speed < 1000)
+		{
+			if(left_speed < right_speed)
+				step_op = TURN_RIGHT;
+			else
+				step_op = TURN_LEFT;
+		}
+		else
+		{
+			step_op = FORWARD;
+		}
+
 
 		step_drive_ratio(left_speed, right_speed);  // 비율 기반 회전 제어
 

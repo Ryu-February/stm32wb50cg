@@ -304,7 +304,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				fix_step = 30000;
 //				step_op = FORWARD;
 				line_tracing_mod = true;
-				step_drive(FORWARD);
+				step_drive(step_op);
 //				line_tracing_pid();
 				break;
 			case COLOR_PURPLE :
@@ -330,6 +330,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  delay_flag = false;
 	  line_tracing_mod = false;
 	  step_op = NONE;
+	  step_set_period(1000, 1000);
   }
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
