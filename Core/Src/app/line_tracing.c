@@ -77,12 +77,15 @@ void line_tracing_pid(void)
 	static uint32_t prev_ms = 0;
 	step_op = FORWARD;
 
-	if(cur_ms - prev_ms > 10)
+	bh1745_color_data_t left_color = bh1745_read_rgbc(BH1745_ADDR_LEFT);
+	bh1745_color_data_t right_color = bh1745_read_rgbc(BH1745_ADDR_RIGHT);
+
+	if(cur_ms - prev_ms > 5)
 	{
 		prev_ms = cur_ms;
 
-		uint32_t left_brightness  = calculate_brightness(line_left.red, line_left.green, line_left.blue);
-		uint32_t right_brightness = calculate_brightness(line_right.red, line_right.green, line_right.blue);
+		uint32_t left_brightness  = calculate_brightness(left_color.red, left_color.green, left_color.blue);
+		uint32_t right_brightness = calculate_brightness(right_color.red, right_color.green, right_color.blue);
 
 		if(offset_side == LEFT)
 		{
@@ -94,7 +97,6 @@ void line_tracing_pid(void)
 		}
 
 	    float error = (float)right_brightness - left_brightness;
-//	    if(abs(error) < 5)
 	//    integral += error * dt;
 	    float derivative = error - prev_error;
 	    float output = Kp * error + Ki * integral + Kd * derivative;

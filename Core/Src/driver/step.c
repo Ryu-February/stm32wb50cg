@@ -13,7 +13,7 @@ volatile bool idx_change = false;
 
 extern volatile uint32_t timer16_10us;
 extern volatile uint32_t timer17_ms;
-extern volatile uint64_t tim2_us;
+extern volatile uint64_t timer2_1us;
 extern TIM_HandleTypeDef htim2;  // 10kHz interrupt for microstep PWM
 extern TIM_HandleTypeDef htim16;  // 10kHz interrupt for microstep PWM
 extern TIM_HandleTypeDef htim17;  // 10kHz interrupt for microstep PWM
@@ -258,7 +258,8 @@ void step_idx_init(void)
 
 uint32_t get_current_steps(void)
 {
-	return (uint32_t) step_motor_left.total_step;
+	uint32_t total_step = (step_motor_left.total_step + step_motor_right.total_step) / 2;
+	return total_step;
 }
 
 void total_step_init(void)

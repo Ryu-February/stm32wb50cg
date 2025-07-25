@@ -47,12 +47,12 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 int i = 0;
-volatile uint64_t timer2_1us = 0;
+volatile uint32_t timer2_1us = 0;
+volatile uint32_t timer16_1us = 0;
 volatile uint32_t timer16_10us = 0;
 volatile uint32_t timer17_ms = 0;
 volatile uint32_t timer17_uart_ms = 0;
 volatile uint32_t pb0_pressed_time = 0;
-volatile uint64_t tim2_us = 0;
 
 volatile bool delay_flag = false;
 
@@ -302,14 +302,28 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				break;
 			case COLOR_BLUE :
 				fix_step = 30000;
-//				step_op = FORWARD;
 				line_tracing_mod = true;
 				step_drive(step_op);
-//				line_tracing_pid();
 				break;
 			case COLOR_PURPLE :
-				fix_step = 200;
+				fix_step = 1000;
 				step_drive(FORWARD);
+				step_set_period(2000, 700);
+				break;
+			case COLOR_LIGHT_GREEN :
+				fix_step = 1000;
+				step_drive(FORWARD);
+				step_set_period(700, 2000);
+				break;
+			case COLOR_SKY_BLUE :
+				fix_step = 1000;
+				step_drive(REVERSE);
+				step_set_period(1500, 1000);
+				break;
+			case COLOR_PINK :
+				fix_step = 1000;
+				step_drive(REVERSE);
+				step_set_period(1000, 1500);
 				break;
 			case COLOR_GRAY :
 				fix_step = 1900;
@@ -330,7 +344,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  delay_flag = false;
 	  line_tracing_mod = false;
 	  step_op = NONE;
-	  step_set_period(1000, 1000);
+	  step_set_period(1500, 1500);
   }
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
@@ -391,7 +405,7 @@ void TIM2_IRQHandler(void)
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-  timer2_1us++;//이렇게 하면 안 되는 듯 이거 71초 정도 나올 거임
+//  timer2_1us = __HAL_TIM_GET_COUNTER(&htim2);
   /* USER CODE END TIM2_IRQn 1 */
 }
 

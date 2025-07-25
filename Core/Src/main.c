@@ -270,7 +270,7 @@ int main(void)
 
   step_init_all();
   step_stop();
-  step_set_period(1000, 1000);
+  step_set_period(1500, 1500);
 
   load_color_reference_table();
   calculate_color_brightness_offset();
@@ -436,11 +436,12 @@ int main(void)
 
 	  if(line_tracing_mod == true)
 	  {
-		  line_left  = line_tracing_read_rgb(BH1745_ADDR_LEFT);
-		  line_right = line_tracing_read_rgb(BH1745_ADDR_RIGHT);
 		  line_tracing_pid();
 	  }
 
+//	  uart_printf("hi\r\n");
+//	  HAL_Delay(1000);
+//	  uart_printf("timer2_1us: %d\r\n", (uint32_t) timer2_1us);
 //	    if (flag_step_drive)
 //	    {
 //	    	uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
@@ -756,7 +757,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 63;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 29;//이거 9가 10us, 99가 100us임 10us로 할 때 while 문이 안 돎
+  htim16.Init.Period = 29;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
