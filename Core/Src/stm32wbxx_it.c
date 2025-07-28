@@ -73,6 +73,8 @@ volatile bool tim16_irq = false;
 volatile bool flag_step_drive = false;
 volatile StepOperation step_op = NONE;
 
+volatile uint8_t repeat_target = 1;      // 총 몇 번 반복할지 (예: 2번 반복하고 종료)
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -348,6 +350,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				static bool is_running = false;
 				static uint16_t run_period_left, run_period_right = 0;
 				static uint16_t run_step = 0;
+				static uint8_t repeat_count = 0;       // 현재까지 몇 번 반복했는지
 
 
 				if (!is_running && run_index < insert_index)
@@ -388,16 +391,22 @@ void TIM1_UP_TIM16_IRQHandler(void)
 
 						if (run_index >= insert_index)
 						{
-							step_stop();
-							color_mode = MODE_NONE;
-							insert_index = 0;
-//							HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
 							run_index = 0;
-							step_set_period(1500, 1500);
-							line_tracing_mod = false;
-							step_op = NONE;
-							delay_flag = false;
-							total_step_init();
+							repeat_count++;
+							if(repeat_count >= repeat_target)
+							{
+								step_stop();
+								color_mode = MODE_NONE;
+								insert_index = 0;
+								run_index = 0;
+								step_set_period(1500, 1500);
+								line_tracing_mod = false;
+								step_op = NONE;
+								delay_flag = false;
+								total_step_init();
+								repeat_target = 1;
+							}
+
 						}
 
 					}
@@ -406,7 +415,6 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				break;
 			default :
 				step_op = NONE;
-//				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
 				break;
 	    }
   }

@@ -106,6 +106,7 @@ bh1745_color_data_t line_left, line_right;
 
 extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
 extern uint8_t insert_index;
+extern volatile uint8_t repeat_target;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -386,16 +387,16 @@ int main(void)
 		  {
 			  switch (detected_left)
 			  {
-			  	  case COLOR_RED:          color_mode = MODE_FORWARD; break;
-			  	  case COLOR_ORANGE:       color_mode = MODE_BACKWARD; break;
-			  	  case COLOR_YELLOW:       color_mode = MODE_LEFT; break;
-			  	  case COLOR_GREEN:        color_mode = MODE_RIGHT; break;
-			  	  case COLOR_BLUE:         color_mode = MODE_LINE_TRACE; break;
-			  	  case COLOR_PURPLE:       color_mode = MODE_FAST_FORWARD; break;
-			  	  case COLOR_LIGHT_GREEN:  color_mode = MODE_SLOW_FORWARD; break;
+			  	  case COLOR_RED:          color_mode = MODE_FORWARD; 		break;
+			  	  case COLOR_ORANGE:       color_mode = MODE_BACKWARD; 		break;
+			  	  case COLOR_YELLOW:       color_mode = MODE_LEFT; 			break;
+			  	  case COLOR_GREEN:        color_mode = MODE_RIGHT; 		break;
+			  	  case COLOR_BLUE:         color_mode = MODE_LINE_TRACE;  	break;
+			  	  case COLOR_PURPLE:       color_mode = MODE_FAST_FORWARD;  break;
+			  	  case COLOR_LIGHT_GREEN:  color_mode = MODE_SLOW_FORWARD;  break;
 			  	  case COLOR_SKY_BLUE:     color_mode = MODE_FAST_BACKWARD; break;
 			  	  case COLOR_PINK:         color_mode = MODE_SLOW_BACKWARD; break;
-			  	  case COLOR_GRAY:         color_mode = MODE_LONG_FORWARD; break;
+			  	  case COLOR_GRAY:         color_mode = MODE_LONG_FORWARD; 	break;
 			  	  default:                 break;
 			  }
 		  }
@@ -416,14 +417,25 @@ int main(void)
 			  {
 				  if (detected_left == detected_right && color_mode == MODE_INSERT)
 				  {
-					  if (insert_index < MAX_INSERTED_COMMANDS)
+					  if (detected_left == COLOR_BLACK)
 					  {
-						  insert_queue[insert_index++] = color_to_mode(detected_left);
-						  uart_printf(">> Inserted Command [%d]: %d\r\n", insert_index, color_to_mode(detected_left));
+						  repeat_target = 2;
+					  }
+					  else if(detected_left == COLOR_WHITE)
+					  {
+						  repeat_target = 3;
 					  }
 					  else
 					  {
-						  uart_printf("!! Queue Full\r\n");
+						  if (insert_index < MAX_INSERTED_COMMANDS)
+						  {
+							  insert_queue[insert_index++] = color_to_mode(detected_left);
+							  uart_printf(">> Inserted Command [%d]: %d\r\n", insert_index, color_to_mode(detected_left));
+						  }
+						  else
+						  {
+							  uart_printf("!! Queue Full\r\n");
+						  }
 					  }
 				  }
 				  delay_flag = false;

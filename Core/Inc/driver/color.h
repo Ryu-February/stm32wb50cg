@@ -68,6 +68,8 @@ typedef enum
 	MODE_LONG_FORWARD,       // 회색 → 길게 전진
 	MODE_INSERT,
 	MODE_RUN,
+	MODE_REPEAT_TWICE,
+	MODE_REPEAT_THRICE,
 	MODE_COUNT
 } color_mode_t;
 
