@@ -92,6 +92,7 @@ extern volatile StepOperation step_op;
 color_t detected_left = COLOR_BLACK;
 color_t detected_right = COLOR_BLACK;
 StepOperation op = NONE;
+color_mode_t color_mode = MODE_NONE;
 
 extern volatile bool tim16_irq;
 volatile bool line_tracing_mod = false;
@@ -102,6 +103,9 @@ uint16_t offset_white = 0;
 uint16_t offset_average = 0;
 
 bh1745_color_data_t line_left, line_right;
+
+extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
+extern uint8_t insert_index;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -288,6 +292,7 @@ int main(void)
 
 
 
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -377,6 +382,54 @@ int main(void)
 		  uart_printf("default offset: %d\r\n", left_brightness - right_brightness);
 		  uart_printf("-------------------------------------------------------\r\n");
 
+		  if (detected_left == detected_right && color_mode != MODE_INSERT)
+		  {
+			  switch (detected_left)
+			  {
+			  	  case COLOR_RED:          color_mode = MODE_FORWARD; break;
+			  	  case COLOR_ORANGE:       color_mode = MODE_BACKWARD; break;
+			  	  case COLOR_YELLOW:       color_mode = MODE_LEFT; break;
+			  	  case COLOR_GREEN:        color_mode = MODE_RIGHT; break;
+			  	  case COLOR_BLUE:         color_mode = MODE_LINE_TRACE; break;
+			  	  case COLOR_PURPLE:       color_mode = MODE_FAST_FORWARD; break;
+			  	  case COLOR_LIGHT_GREEN:  color_mode = MODE_SLOW_FORWARD; break;
+			  	  case COLOR_SKY_BLUE:     color_mode = MODE_FAST_BACKWARD; break;
+			  	  case COLOR_PINK:         color_mode = MODE_SLOW_BACKWARD; break;
+			  	  case COLOR_GRAY:         color_mode = MODE_LONG_FORWARD; break;
+			  	  default:                 break;
+			  }
+		  }
+		  else
+		  {
+			  if (detected_left == COLOR_LIGHT_GREEN && detected_right == COLOR_ORANGE && color_mode != MODE_INSERT)
+			  {
+				  color_mode = MODE_INSERT;
+				  uart_printf(">> Mode [INSERT]\r\n");
+//		  			insert_index = 0;
+			  }
+			  else if (detected_left == COLOR_LIGHT_GREEN && detected_right == COLOR_ORANGE && color_mode == MODE_INSERT)
+			  {
+				  color_mode = MODE_RUN;
+				  uart_printf(">> Mode [RUN]\r\n");
+			  }
+			  else
+			  {
+				  if (detected_left == detected_right && color_mode == MODE_INSERT)
+				  {
+					  if (insert_index < MAX_INSERTED_COMMANDS)
+					  {
+						  insert_queue[insert_index++] = color_to_mode(detected_left);
+						  uart_printf(">> Inserted Command [%d]: %d\r\n", insert_index, color_to_mode(detected_left));
+					  }
+					  else
+					  {
+						  uart_printf("!! Queue Full\r\n");
+					  }
+				  }
+				  delay_flag = false;
+			  }
+		  }
+
 		  HAL_Delay(500);
 		  delay_flag = true;
 		  check_color = false;
@@ -384,7 +437,7 @@ int main(void)
 
 	  static unsigned char once_flag = 0;
 
-	  if(cur_mode == MODE_CALIBRATION)
+	  if(cur_mode == MODE_CALIBRATION && color_mode != MODE_INSERT)
 	  {
 		  if(!once_flag)
 		  {
@@ -425,6 +478,7 @@ int main(void)
 
 			  if(init_cnt > COLOR_GRAY)
 			  {
+				  once_flag = 0;
 				  cur_mode = 0;
 				  init_cnt = 0;
 				  debug_print_color_reference_table();

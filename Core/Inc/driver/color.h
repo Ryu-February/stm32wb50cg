@@ -27,8 +27,10 @@
 #define BH1745_REG_BLUE_DATA_LSB 	0x54
 #define BH1745_REG_CLEAR_DATA_LSB 	0x56
 
-#define BH1745_I2C_ADDR         (0x38 << 1) // 0x70
-#define BH1745_REG_MANUFACTURER_ID   0x92
+#define BH1745_I2C_ADDR         	(0x38 << 1) // 0x70
+#define BH1745_REG_MANUFACTURER_ID  0x92
+
+#define MAX_INSERTED_COMMANDS 		20
 
 typedef struct
 {
@@ -51,6 +53,27 @@ typedef struct {
     uint64_t offset;//flash 메모리에 저장할 때 8바이트 단위로 맞춰야 해서 uint64_t로 구조체 총합 24바이트로 맞춤
 } reference_entry_t;
 
+typedef enum
+{
+	MODE_NONE = 0,           // 기본값 또는 동작 없음
+	MODE_FORWARD,            // 빨강 → 전진
+	MODE_BACKWARD,           // 주황 → 후진
+	MODE_LEFT,               // 노랑 → 좌회전
+	MODE_RIGHT,              // 초록 → 우회전
+	MODE_LINE_TRACE,         // 파랑 → 라인트레이싱
+	MODE_FAST_FORWARD,       // 보라 → 빠른 전진 (마이크로스텝)
+	MODE_SLOW_FORWARD,       // 연두 → 느린 전진 (마이크로스텝)
+	MODE_FAST_BACKWARD,      // 하늘 → 빠른 후진 (마이크로스텝)
+	MODE_SLOW_BACKWARD,      // 분홍 → 느린 후진 (마이크로스텝)
+	MODE_LONG_FORWARD,       // 회색 → 길게 전진
+	MODE_INSERT,
+	MODE_RUN,
+	MODE_COUNT
+} color_mode_t;
+
+
+
+
 void bh1745_write_reg(uint8_t dev_addr, uint8_t reg, uint8_t data);
 void bh1745_init(uint8_t dev_addr);
 
@@ -66,6 +89,7 @@ void load_color_reference_table(void);
 void debug_print_color_reference_table(void);
 uint32_t calculate_brightness(uint16_t r, uint16_t g, uint16_t b);
 void calculate_color_brightness_offset(void);
+color_mode_t color_to_mode(color_t color);
 
 
 #endif /* INC_DRIVER_COLOR_H_ */

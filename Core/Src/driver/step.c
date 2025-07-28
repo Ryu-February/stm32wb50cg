@@ -314,3 +314,81 @@ void step_drive_ratio(uint16_t left_speed, uint16_t right_speed)  // 비율 기�
 {
 	step_set_period(left_speed, right_speed);
 }
+
+StepOperation mode_to_step(color_mode_t mode)
+{
+	switch (mode)
+	{
+		case MODE_FORWARD:
+		case MODE_FAST_FORWARD:
+		case MODE_SLOW_FORWARD:
+		case MODE_LONG_FORWARD:
+			return FORWARD;
+
+		case MODE_BACKWARD:
+		case MODE_FAST_BACKWARD:
+		case MODE_SLOW_BACKWARD:
+			return REVERSE;
+
+		case MODE_LEFT:
+			return TURN_LEFT;
+
+		case MODE_RIGHT:
+			return TURN_RIGHT;
+
+		default:
+			return NONE;
+	}
+}
+
+uint16_t mode_to_step_count(color_mode_t mode)
+{
+	switch (mode)
+	{
+		case MODE_FORWARD:
+		case MODE_BACKWARD:
+		case MODE_FAST_FORWARD:
+		case MODE_SLOW_FORWARD:
+			return 1000;
+		case MODE_FAST_BACKWARD:
+		case MODE_SLOW_BACKWARD:
+			return 850;
+
+		case MODE_LEFT:
+		case MODE_RIGHT:
+			return 390;
+
+		case MODE_LONG_FORWARD:
+			return 1900;
+
+		case MODE_LINE_TRACE:
+			return 30000;
+
+		default:
+			return 0;
+	}
+}
+
+uint16_t mode_to_left_period(color_mode_t mode)
+{
+	switch (mode)
+	{
+		case MODE_FAST_FORWARD:   return 2000;
+		case MODE_SLOW_FORWARD:   return 700;
+		case MODE_FAST_BACKWARD:  return 1500;
+		case MODE_SLOW_BACKWARD:  return 1000;
+		default:                  return 1000; // 기본값
+	}
+}
+
+uint16_t mode_to_right_period(color_mode_t mode)
+{
+	switch (mode)
+	{
+		case MODE_FAST_FORWARD:   return 700;
+		case MODE_SLOW_FORWARD:   return 2000;
+		case MODE_FAST_BACKWARD:  return 1000;
+		case MODE_SLOW_BACKWARD:  return 1500;
+		default:                  return 1000; // 기본값
+	}
+}

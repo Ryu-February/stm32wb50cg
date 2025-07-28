@@ -18,15 +18,22 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
-#include "stm32wbxx_it.h"
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
+#include <color.h>
+#include <rgb.h>
 #include <stdbool.h>
-#include "color.h"
-#include "step.h"
-#include "line_tracing.h"
+#include <step.h>
+#include <stm32wbxx_hal.h>
+#include <stm32wbxx_hal_gpio.h>
+#include <stm32wbxx_hal_i2c.h>
+#include <stm32wbxx_hal_rcc.h>
+#include <stm32wbxx_hal_rtc.h>
+#include <stm32wbxx_hal_rtc_ex.h>
+#include <stm32wbxx_hal_tim.h>
+#include <stm32wbxx_hal_uart.h>
+#include <sys/_stdint.h>
+#include "stm32wbxx_it.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -88,8 +95,11 @@ extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 extern color_t detected_left;
 extern color_t detected_right;
+extern color_mode_t color_mode;
 extern volatile bool check_color;
 extern volatile bool line_tracing_mod;
+extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
+extern uint8_t insert_index;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -273,70 +283,137 @@ void TIM1_UP_TIM16_IRQHandler(void)
   tim16_irq = true;
   rgb_set_color(detected_left);
 
-  uint16_t fix_step = 0;
+  static uint16_t fix_step = 0;
+  static uint16_t prev_ms = 0;
 
   if(delay_flag == true)
   {
-	  flag_step_drive = true;
-	  switch (detected_left)
+//	  flag_step_drive = true;
+	  switch (color_mode)
 	    {
-			case COLOR_RED :
+			case MODE_FORWARD :
 				fix_step = 1000;
 				step_drive(FORWARD);
 				step_op = FORWARD;
 				break;
-			case COLOR_ORANGE :
+			case MODE_BACKWARD :
 				fix_step = 1000;
 				step_drive(REVERSE);
 				step_op = REVERSE;
 			 	break;
-			case COLOR_YELLOW :
+			case MODE_LEFT :
 				fix_step = 390;
 				step_drive(TURN_LEFT);
 				step_op = TURN_LEFT;
 				break;
-			case COLOR_GREEN :
+			case MODE_RIGHT :
 				fix_step = 390;
 				step_drive(TURN_RIGHT);
 				step_op = TURN_RIGHT;
 				break;
-			case COLOR_BLUE :
+			case MODE_LINE_TRACE :
 				fix_step = 30000;
 				line_tracing_mod = true;
 				step_drive(step_op);
 				break;
-			case COLOR_PURPLE :
-				fix_step = 1000;
+			case MODE_FAST_FORWARD :
+				fix_step = 850;
 				step_drive(FORWARD);
 				step_set_period(2000, 700);
 				break;
-			case COLOR_LIGHT_GREEN :
-				fix_step = 1000;
+			case MODE_SLOW_FORWARD :
+				fix_step = 850;
 				step_drive(FORWARD);
 				step_set_period(700, 2000);
 				break;
-			case COLOR_SKY_BLUE :
+			case MODE_FAST_BACKWARD :
 				fix_step = 1000;
 				step_drive(REVERSE);
 				step_set_period(1500, 1000);
 				break;
-			case COLOR_PINK :
+			case MODE_SLOW_BACKWARD :
 				fix_step = 1000;
 				step_drive(REVERSE);
 				step_set_period(1000, 1500);
 				break;
-			case COLOR_GRAY :
+			case MODE_LONG_FORWARD :
 				fix_step = 1900;
 				step_drive(FORWARD);
 				break;
+			case MODE_INSERT :
+//				color_mode = MODE_NONE;
+				break;
+			case MODE_RUN :
+				static uint8_t run_index = 0;
+				static bool is_running = false;
+				static uint16_t run_period_left, run_period_right = 0;
+				static uint16_t run_step = 0;
+
+
+				if (!is_running && run_index < insert_index)
+				{
+					color_mode_t next_cmd = insert_queue[run_index];
+					step_op = mode_to_step(next_cmd);  // 이거도 따로 함수화 가능
+					run_step = mode_to_step_count(next_cmd);  // 예: 1000 등
+					run_period_left  = mode_to_left_period(insert_queue[run_index]);
+					run_period_right = mode_to_right_period(insert_queue[run_index]);
+					step_set_period(run_period_left, run_period_right);
+					is_running = true;
+
+				}
+				else if (is_running)
+				{
+					// fix_step 만큼 스텝 수행 완료된 뒤
+					step_drive(step_op);
+
+					if (get_current_steps() > run_step)
+					{
+						static uint8_t once_flag = 1;
+						if(once_flag)
+						{
+							prev_ms = timer17_ms;
+							once_flag = 0;
+						}
+						step_op = STOP;
+
+						uint16_t cur_ms = timer17_ms;
+						if(cur_ms - prev_ms > 500)
+						{
+//							prev_ms = cur_ms;
+							is_running = false;
+							run_index++;
+							total_step_init();
+							once_flag = 1;
+						}
+
+						if (run_index >= insert_index)
+						{
+							step_stop();
+							color_mode = MODE_NONE;
+							insert_index = 0;
+//							HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+							run_index = 0;
+							step_set_period(1500, 1500);
+							line_tracing_mod = false;
+							step_op = NONE;
+							delay_flag = false;
+							total_step_init();
+						}
+
+					}
+
+				}
+				break;
 			default :
 				step_op = NONE;
+//				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
 				break;
 	    }
   }
 
-  if(get_current_steps() > fix_step)
+  if(get_current_steps() > fix_step && color_mode != MODE_RUN)
   {
+//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
 	  step_stop();
 	  detected_left = COLOR_BLACK;
 	  total_step_init();

@@ -10,6 +10,7 @@
 
 
 #include "stm32wbxx_hal.h"
+#include "color.h"
 
 #define LEFT        0
 #define RIGHT       1
@@ -134,6 +135,9 @@ void step_idx_init(void);
 void step_stop(void);
 void step_drive_ratio(uint16_t left_speed, uint16_t right_speed);
 void step_set_period(uint16_t left_period, uint16_t right_period);
-
+StepOperation mode_to_step(color_mode_t mode);
+uint16_t mode_to_step_count(color_mode_t mode);
+uint16_t mode_to_left_period(color_mode_t mode);
+uint16_t mode_to_right_period(color_mode_t mode);
 
 #endif /* INC_DRIVER_STEP_H_ */

@@ -41,6 +41,10 @@ extern uint16_t offset_white;
 extern uint16_t offset_average;
 
 
+color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
+uint8_t insert_index = 0;
+
+
 
 void bh1745_write_reg(uint8_t dev_addr, uint8_t reg, uint8_t data)
 {
@@ -237,4 +241,22 @@ void calculate_color_brightness_offset(void)
     offset_side = (color_reference_tbl_left[COLOR_BLACK].offset > color_reference_tbl_right[COLOR_BLACK].offset)
     					? LEFT : RIGHT;
     offset_average = (offset_black + offset_white) / 2;
+}
+
+color_mode_t color_to_mode(color_t color)
+{
+	switch (color)
+	{
+		case COLOR_RED:         return MODE_FORWARD;
+		case COLOR_ORANGE:      return MODE_BACKWARD;
+		case COLOR_YELLOW:      return MODE_LEFT;
+		case COLOR_GREEN:       return MODE_RIGHT;
+		case COLOR_BLUE:        return MODE_LINE_TRACE;
+		case COLOR_PURPLE:      return MODE_FAST_FORWARD;
+		case COLOR_LIGHT_GREEN: return MODE_SLOW_FORWARD;
+		case COLOR_SKY_BLUE:    return MODE_FAST_BACKWARD;
+		case COLOR_PINK:        return MODE_SLOW_BACKWARD;
+		case COLOR_GRAY:        return MODE_LONG_FORWARD;
+		default:                return MODE_NONE;
+	}
 }
