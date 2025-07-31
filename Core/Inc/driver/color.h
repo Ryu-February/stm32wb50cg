@@ -30,7 +30,7 @@
 #define BH1745_I2C_ADDR         	(0x38 << 1) // 0x70
 #define BH1745_REG_MANUFACTURER_ID  0x92
 
-#define MAX_INSERTED_COMMANDS 		20
+#define MAX_INSERTED_COMMANDS 		40
 
 typedef struct
 {

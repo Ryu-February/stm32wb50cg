@@ -33,6 +33,8 @@
 #include "flash.h"
 #include "step.h"
 #include "ir.h"
+#include "buzzer.h"
+#include "pitches.h"
 #include "line_tracing.h"
 
 //#include "rtc.h"
@@ -269,6 +271,7 @@ int main(void)
   HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);
 
   rgb_init();
+  buzzer_init();
 
   bh1745_init(BH1745_ADDR_LEFT);
   bh1745_init(BH1745_ADDR_RIGHT);
@@ -355,6 +358,18 @@ int main(void)
 		  }
 	  }
 */
+//	  static bool buz_once = true;
+//	  if(buz_once == true)
+//	  {
+//		  buzzer_beep(B_8, 100);
+//		  buzzer_beep(D_5, 200);
+//		  buzzer_beep(DS_5, 100);
+//		  buzzer_beep(G_5, 200);
+//		  buzzer_beep(C_6, 200);
+//		  buz_once = false;
+//	  }
+
+
 	  if(check_color == true && cur_mode == 0)
 	  {
 		  left_color  = bh1745_read_rgbc(BH1745_ADDR_LEFT);
@@ -1006,8 +1021,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

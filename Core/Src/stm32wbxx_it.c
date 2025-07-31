@@ -18,7 +18,10 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-
+#include "main.h"
+#include "stm32wbxx_it.h"
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 #include <color.h>
 #include <rgb.h>
 #include <stdbool.h>
@@ -32,8 +35,6 @@
 #include <stm32wbxx_hal_tim.h>
 #include <stm32wbxx_hal_uart.h>
 #include <sys/_stdint.h>
-#include "stm32wbxx_it.h"
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,6 +103,7 @@ extern volatile bool check_color;
 extern volatile bool line_tracing_mod;
 extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
 extern uint8_t insert_index;
+extern volatile bool buzzer_enabled;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -281,6 +283,16 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   HAL_TIM_IRQHandler(&htim16);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
+
+//  if (__HAL_TIM_GET_FLAG(&htim1, TIM_FLAG_UPDATE) &&
+//	 __HAL_TIM_GET_IT_SOURCE(&htim1, TIM_IT_UPDATE))
+//  {
+//	  __HAL_TIM_CLEAR_IT(&htim1, TIM_IT_UPDATE);
+//
+//	  if (buzzer_enabled)
+//		  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);  // 피에조 부저 사각파 출력
+//  }
+
   timer16_10us++;
   tim16_irq = true;
   rgb_set_color(detected_left);
