@@ -306,10 +306,10 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  if(buzzer_start)
 	  {
 		  if(buz_cnt < 100)
-			  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);  // 피에조 부저 사각파 출력
+		  	  buzzer_op(BUZZER_TOGGLE);
 		  else
 		  {
-			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+			  buzzer_op(BUZZER_OFF);
 			  buzzer_start = false;
 		  }
 	  }

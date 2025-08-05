@@ -62,11 +62,15 @@ void buzzer_op(buzzer_t op)
 
 void pitches_to_period(uint16_t tone)
 {
+	TIM1->DIER &= ~TIM_DIER_UIE;
+
 	float temp		= 1.0f / tone;		//tone == frequency
 	uint16_t period = (float)(temp * TIM1_IRQ_PERIOD) - 1;
 	TIM1->ARR = period;
 	TIM1->CNT = 0;
+
 	TIM1->EGR |= TIM_EGR_UG;  // ARR 갱신
+	TIM1->DIER |= TIM_DIER_UIE;
 
 	buzzer_start = true;
 }

@@ -290,7 +290,7 @@ int main(void)
 
 
 
-
+  HAL_Delay(50);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -365,6 +365,7 @@ int main(void)
 	  static bool buz_once = true;
 	  if(buz_once == true)
 	  {
+//		  buzzer_start = true;
 		  pitches_to_period(B_5);
 //		  buzzer_beep(B_8, 300);
 //		  buzzer_beep(B_5, 100);
