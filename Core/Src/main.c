@@ -88,6 +88,7 @@ uint8_t rx_buf[32];       // 수신 버퍼
 uint8_t rx_index = 0;     // 수신 인덱스
 bool command_ready = false; // 파싱 준비 완료 flag
 int steps = 0;
+int total_steps = 0;
 extern volatile uint64_t tim2_us;
 extern volatile bool idx_change;
 extern volatile unsigned char cur_mode;
@@ -135,58 +136,78 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1)
     {
-        uint8_t byte = rx_buf[rx_index];
+    	uint8_t byte = rx_buf[rx_index];
 
-        if (byte == '>')  // 끝 문자
+        if (byte == '[')  // 시작 문자
         {
-            command_ready = true;
-            rx_buf[rx_index + 1] = '\0';  // null-terminate
             rx_index = 0;
+            receiving_command = true;
         }
-        else
+
+        if (receiving_command)
         {
             if (rx_index < sizeof(rx_buf) - 2)
-                rx_index++;
+            {
+                rx_buf[rx_index++] = byte;
+            }
+
+            if (byte == ']')  // 끝 문자 수신
+            {
+                rx_buf[rx_index] = '\0';
+                rx_index = 0;
+                receiving_command = false;
+                command_ready = true;
+            }
         }
 
-        HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);  // 다음 바이트 준비
+        HAL_UART_Receive_IT(&huart1, &rx_buf[rx_index], 1);  // 다음 바이트 수신
     }
 }
 
 void parse_uart_command(void)
 {
-    if (!command_ready)
-        return;
+	if(!command_ready)
+		return;
 
-    command_ready = false;
+	command_ready = false;
 
-    if (rx_buf[0] == '<' && rx_buf[1] != '\0')
+    int i = 0;
+    while (rx_buf[i] != '\0')
     {
-        char dir = rx_buf[1];
-        steps = atoi((char*)&rx_buf[2]);  // 예: "100"
-
-        if (dir == 'F')
-		{
-			op = FORWARD;
-			detected_left = COLOR_RED;
-		}
-        else if (dir == 'B')
+        if (rx_buf[i] == '<' && rx_buf[i+1] != '\0')
         {
-        	op = REVERSE;
-        	detected_left = COLOR_BLUE;
+            char dir = rx_buf[i+1];
+            int j = i + 2;
+            char num_buf[6] = {0};
+            int k = 0;
+
+            while (rx_buf[j] != '\0' && rx_buf[j] != '>' && k < 5)
+                num_buf[k++] = rx_buf[j++];
+
+            int step = atoi(num_buf);
+            total_steps += step;
+            StepOperation op = NONE;
+
+            if (dir == 'F') op = FORWARD;
+            else if (dir == 'B') op = REVERSE;
+            else if (dir == 'L') op = TURN_LEFT;
+            else if (dir == 'R') op = TURN_RIGHT;
+
+            if (op != NONE && step > 0 && step <= 10000)
+            {
+                enqueue_command(op, step);
+                uart_printf("Enqueued: %c%d\r\n", dir, step);
+            }
+
+            i = j;  // 다음 '<' 탐색
         }
-        else if (dir == 'L')
-		{
-			op = TURN_LEFT;
-			detected_left = COLOR_GREEN;
-		}
-        else if (dir == 'R')
-		{
-			op = TURN_RIGHT;
-			detected_left = COLOR_WHITE;
-		}
+        else
+        {
+            i++;
+        }
     }
-    uart_printf("rx_buffer: %s\r\n", rx_buf);
+
+    memset(rx_buf, 0, sizeof(rx_buf));
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
