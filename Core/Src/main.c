@@ -307,7 +307,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-/*
+
 	  parse_uart_command(); // 수신 명령 파싱 및 실행
 
 	  if(check_color == true)
@@ -349,7 +349,7 @@ int main(void)
 				{
 					prev_us = now;
 
-					step_test(op);
+					step_drive(op);
 //					HAL_Delay(1);//half-step
 				}
 				  if(idx_change == true)
@@ -361,7 +361,8 @@ int main(void)
 
 		  }
 	  }
-*/
+
+	  /*
 	  static bool buz_once = true;
 	  if(buz_once == true)
 	  {
@@ -544,7 +545,7 @@ int main(void)
 //				prev_us = now;
 //			}
 //
-//	    }
+//	    }*/
   }
   /* USER CODE END 3 */
 }

@@ -305,6 +305,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
   timer16_10us++;
   tim16_irq = true;
   rgb_set_color(detected_left);
+  /*
 
   static uint16_t fix_step = 0;
   static uint16_t prev_ms = 0;
@@ -451,7 +452,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  line_tracing_mod = false;
 	  step_op = NONE;
 	  step_set_period(1500, 1500);
-  }
+  }*/
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
@@ -475,18 +476,18 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 1 */
   timer17_ms++;
 
-  uint16_t buz_cnt = 0;
-  static bool buz_init = false;
-
-  if(!buz_init)
-  {
-	  if(++buz_cnt > 100)
-	  {
-		  buz_init = true;
-	  }
-	  else
-		  buzzer_op(BUZZER_TOGGLE);
-  }
+//  uint16_t buz_cnt = 0;
+//  static bool buz_init = false;
+//
+//  if(!buz_init)
+//  {
+//	  if(++buz_cnt > 100)
+//	  {
+//		  buz_init = true;
+//	  }
+//	  else
+//		  buzzer_op(BUZZER_TOGGLE);
+//  }
 
 
   if(pb0_pressed == true)
