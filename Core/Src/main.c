@@ -313,55 +313,75 @@ int main(void)
 
 	  parse_uart_command(); // 수신 명령 파싱 및 실행
 
-	  if(check_color == true)
+	  if (!executing)
+	  {
+		  if (dequeue_command(&current_cmd))
+		  {
+			  executing = true;
+			  executed_steps = 0;
+ //			  check_color = true;
+			  uart_printf("START %d step (%d)\r\n", current_cmd.op, current_cmd.steps);
+		  }
+	 }
+
+	  if(check_color == true && executing)
 	  {
 		  HAL_Delay(1000);
-		  switch (op)
-		  {
-				case NONE :
-					check_color = false;
-					command_ready = false;
-					uart_printf("ERROR\r\n");
-					break;
-				case FORWARD :
-					uart_printf("FORWARD\r\n");
-					break;
-				case REVERSE :
-					uart_printf("REVERSE\r\n");
-					break;
-				case TURN_LEFT :
-					uart_printf("TURN_LEFT\r\n");
-					break;
-				case TURN_RIGHT :
-					uart_printf("TURN_RIGHT\r\n");
-					break;
-				default :
-//					break;
 
+		  switch (current_cmd.op)
+		  {
+			  case NONE :
+				  check_color = false;
+				  command_ready = false;
+				  uart_printf("ERROR\r\n");
+				  break;
+			  case FORWARD :
+				  uart_printf("FORWARD\r\n");
+				  break;
+			  case REVERSE :
+				  uart_printf("REVERSE\r\n");
+				  break;
+			  case TURN_LEFT :
+				  uart_printf("TURN_LEFT\r\n");
+				  break;
+			  case TURN_RIGHT :
+				  uart_printf("TURN_RIGHT\r\n");
+				  break;
+			  default :
+				  uart_printf("UNKNOWN CMD\r\n");
+				  break;
 		  }
-		  uart_printf("step: %d\r\n", steps);
 
-		  if (op != NONE && steps > 0 && steps <= 10000)
+		  uart_printf("step: %d\r\n", current_cmd.steps);
+
+		  if (current_cmd.op != NONE && current_cmd.steps > 0 && current_cmd.steps <= 10000)
 		  {
-			  for (int i = 0; i < steps;)
+			  for (int i = 0; i < current_cmd.steps;)
 			  {
-				uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
-				static uint64_t prev_us = 0;
+				  uint64_t now = __HAL_TIM_GET_COUNTER(&htim2);
+				  static uint64_t prev_us = 0;
 
-				if(now - prev_us > 10)
-				{
-					prev_us = now;
+				  if(now - prev_us > 10)
+				  {
+					  prev_us = now;
+					  step_drive(current_cmd.op);
+				  }
 
-					step_drive(op);
-//					HAL_Delay(1);//half-step
-				}
 				  if(idx_change == true)
-				  	  i++;
+				  {
+					  idx_change = false;
+					  i++;
+					  if(total_steps < i)
+					  {
+						  check_color = false;
+					  }
+				  }
 			  }
-			  step_stop(); // 끝나면 정지
-			  check_color = false;
-			  memset(rx_buf, 0, sizeof(rx_buf));
 
+			  step_stop();
+ //	          check_color = false;
+			  memset(rx_buf, 0, sizeof(rx_buf));
+			  executing = false;
 		  }
 	  }
 
