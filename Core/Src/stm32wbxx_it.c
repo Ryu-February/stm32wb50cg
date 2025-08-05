@@ -26,6 +26,7 @@
 #include <rgb.h>
 #include <stdbool.h>
 #include <step.h>
+#include <buzzer.h>
 #include <stm32wbxx_hal.h>
 #include <stm32wbxx_hal_gpio.h>
 #include <stm32wbxx_hal_i2c.h>
@@ -91,6 +92,7 @@ volatile uint8_t repeat_target = 1;      // 총 몇 번 반복할지 (예: 2번 
 /* External variables --------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c1;
 extern RTC_HandleTypeDef hrtc;
+extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
@@ -281,17 +283,24 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim16);
+  if (htim1.Instance != NULL)
+  {
+    HAL_TIM_IRQHandler(&htim1);
+  }
+  if (htim16.Instance != NULL)
+  {
+    HAL_TIM_IRQHandler(&htim16);
+  }
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
 
-//  if (__HAL_TIM_GET_FLAG(&htim1, TIM_FLAG_UPDATE) &&
-//	 __HAL_TIM_GET_IT_SOURCE(&htim1, TIM_IT_UPDATE))
-//  {
-//	  __HAL_TIM_CLEAR_IT(&htim1, TIM_IT_UPDATE);
-//
-//	  if (buzzer_enabled)
-//		  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);  // 피에조 부저 사각파 출력
-//  }
+  if (__HAL_TIM_GET_FLAG(&htim1, TIM_FLAG_UPDATE) &&
+	 __HAL_TIM_GET_IT_SOURCE(&htim1, TIM_IT_UPDATE))
+  {
+	  __HAL_TIM_CLEAR_IT(&htim1, TIM_IT_UPDATE);
+
+	  if (buzzer_enabled)
+		  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);  // 피에조 부저 사각파 출력
+  }
 
   timer16_10us++;
   tim16_irq = true;
@@ -455,9 +464,30 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 0 */
 
   /* USER CODE END TIM1_TRG_COM_TIM17_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim17);
+  if (htim1.Instance != NULL)
+  {
+    HAL_TIM_IRQHandler(&htim1);
+  }
+  if (htim17.Instance != NULL)
+  {
+    HAL_TIM_IRQHandler(&htim17);
+  }
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 1 */
   timer17_ms++;
+
+  uint16_t buz_cnt = 0;
+  static bool buz_init = false;
+
+  if(!buz_init)
+  {
+	  if(++buz_cnt > 100)
+	  {
+		  buz_init = true;
+	  }
+	  else
+		  buzzer_op(BUZZER_TOGGLE);
+  }
+
 
   if(pb0_pressed == true)
   {

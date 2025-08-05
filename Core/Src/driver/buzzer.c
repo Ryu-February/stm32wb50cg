@@ -11,6 +11,9 @@
 extern TIM_HandleTypeDef htim1;
 volatile bool buzzer_enabled = false;
 
+#define TIM1_IRQ_PERIOD		1000000
+
+
 
 void buzzer_init(void)
 {
@@ -38,4 +41,27 @@ void buzzer_beep(uint16_t freq, uint16_t duration_ms)
     buzzer_enabled = false;
     HAL_TIM_Base_Stop_IT(&htim1);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+}
+
+void buzzer_op(buzzer_t op)
+{
+	if(op == BUZZER_ON)
+	{
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+	}
+	else if(op == BUZZER_OFF)
+	{
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+	}
+	else if(op == BUZZER_TOGGLE)
+	{
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);
+	}
+}
+
+void pitches_to_period(uint16_t tone)
+{
+	uint16_t temp 	= 1 / tone;		//tone == frequency
+	uint16_t period = (temp - 1) * TIM1_IRQ_PERIOD;
+	TIM1->ARR = period;
 }
