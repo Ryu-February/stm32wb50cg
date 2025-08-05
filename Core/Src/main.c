@@ -35,6 +35,7 @@
 #include "ir.h"
 #include "buzzer.h"
 #include "pitches.h"
+#include "queue.h"
 #include "line_tracing.h"
 
 //#include "rtc.h"
@@ -298,7 +299,9 @@ int main(void)
 
   bh1745_color_data_t left_color, right_color;
 
-
+  Command current_cmd;
+  bool executing = false;
+  int executed_steps = 0;
 
 
   while (1)
