@@ -84,7 +84,9 @@ extern volatile uint64_t timer2_1us;
 extern volatile uint32_t timer16_10us;
 extern volatile uint32_t timer17_ms;
 extern volatile bool delay_flag;
-uint8_t rx_buf[32];       // 수신 버퍼
+uint8_t rx_buf[64];       // 수신 버퍼
+static char cmd_buf[64];  // 기존 rx_buf에서 복사한 명령 보관용
+static bool has_saved_command = false;
 uint8_t rx_index = 0;     // 수신 인덱스
 bool command_ready = false; // 파싱 준비 완료 flag
 int steps = 0;
@@ -156,6 +158,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
                 rx_buf[rx_index] = '\0';
                 rx_index = 0;
                 receiving_command = false;
+            	strcpy(cmd_buf, rx_buf);  // 명령 보관
+            	has_saved_command = true;
                 command_ready = true;
             }
         }
@@ -166,23 +170,23 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void parse_uart_command(void)
 {
-	if(!command_ready)
-		return;
-
-	command_ready = false;
+//	if(!command_ready)
+//		return;
+//
+//	command_ready = false;
 
     int i = 0;
-    while (rx_buf[i] != '\0')
+    while (cmd_buf[i] != '\0')
     {
-        if (rx_buf[i] == '<' && rx_buf[i+1] != '\0')
+        if (cmd_buf[i] == '<' && cmd_buf[i+1] != '\0')
         {
-            char dir = rx_buf[i+1];
+            char dir = cmd_buf[i+1];
             int j = i + 2;
             char num_buf[6] = {0};
             int k = 0;
 
-            while (rx_buf[j] != '\0' && rx_buf[j] != '>' && k < 5)
-                num_buf[k++] = rx_buf[j++];
+            while (cmd_buf[j] != '\0' && cmd_buf[j] != '>' && k < 5)
+                num_buf[k++] = cmd_buf[j++];
 
             int step = atoi(num_buf);
             total_steps += step;
@@ -208,6 +212,15 @@ void parse_uart_command(void)
     }
 
     memset(rx_buf, 0, sizeof(rx_buf));
+}
+
+void try_parse_uart_command(void)
+{
+	if (command_ready)
+	{
+		command_ready = false;
+		parse_uart_command();  // cmd_buf 기반으로 enqueue
+	}
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -330,11 +343,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  try_parse_uart_command();
 
+//	  parse_uart_command(); // 수신 명령 파싱 및 실행
 
-	  parse_uart_command(); // 수신 명령 파싱 및 실행
-
-	  if (!executing)
+	  if (!executing && has_saved_command)
 	  {
 		  if (dequeue_command(&current_cmd))
 		  {
@@ -344,6 +357,13 @@ int main(void)
 			  uart_printf("START %d step (%d)\r\n", current_cmd.op, current_cmd.steps);
 		  }
 	 }
+
+	  static bool end = false;
+	  if (has_saved_command && end && pb0_pressed)
+	  {
+		parse_uart_command();  // 기존 명령어 다시 파싱해서 큐에 재적재
+		end = false;
+	  }
 
 	  if(check_color == true && executing)
 	  {
@@ -398,7 +418,7 @@ int main(void)
 					  }
 				  }
 			  }
-
+			  end = true;
 			  step_stop();
  //	          check_color = false;
 			  memset(rx_buf, 0, sizeof(rx_buf));
