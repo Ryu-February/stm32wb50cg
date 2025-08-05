@@ -172,7 +172,7 @@ void step_forward(StepMotor *m)
   m->total_step++;
   idx_change = true;
   m->prev_time_us = now;
-  m->step_idx = (m->step_idx - 1) & STEP_MASK;
+  m->step_idx = (m->step_idx + 1) & STEP_MASK;
 #endif
 }
 
@@ -193,7 +193,7 @@ void step_reverse(StepMotor *m)
   m->total_step++;
   idx_change = true;
   m->prev_time_us = now;
-  m->step_idx = (m->step_idx + 1) & STEP_MASK;
+  m->step_idx = (m->step_idx - 1) & STEP_MASK;
 #endif
 }
 
