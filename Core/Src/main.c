@@ -106,7 +106,7 @@ uint8_t  offset_side = 0;
 uint16_t offset_black = 0;
 uint16_t offset_white = 0;
 uint16_t offset_average = 0;
-
+bool receiving_command = false;
 bh1745_color_data_t line_left, line_right;
 
 extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
