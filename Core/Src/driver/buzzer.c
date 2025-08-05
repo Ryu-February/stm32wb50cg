@@ -10,7 +10,7 @@
 
 extern TIM_HandleTypeDef htim1;
 volatile bool buzzer_enabled = false;
-
+volatile bool buzzer_start = false;
 #define TIM1_IRQ_PERIOD		1000000
 
 
@@ -64,4 +64,6 @@ void pitches_to_period(uint16_t tone)
 	uint16_t temp 	= 1 / tone;		//tone == frequency
 	uint16_t period = (temp - 1) * TIM1_IRQ_PERIOD;
 	TIM1->ARR = period;
+
+	buzzer_start = true;
 }

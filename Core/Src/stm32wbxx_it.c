@@ -76,6 +76,7 @@ volatile bool flag_step_drive = false;
 volatile StepOperation step_op = NONE;
 
 volatile uint8_t repeat_target = 1;      // 총 몇 번 반복할지 (예: 2번 반복하고 종료)
+volatile uint16_t buz_cnt = 0;
 
 /* USER CODE END PV */
 
@@ -106,6 +107,7 @@ extern volatile bool line_tracing_mod;
 extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
 extern uint8_t insert_index;
 extern volatile bool buzzer_enabled;
+extern volatile bool buzzer_start;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -298,8 +300,20 @@ void TIM1_UP_TIM16_IRQHandler(void)
   {
 	  __HAL_TIM_CLEAR_IT(&htim1, TIM_IT_UPDATE);
 
-	  if (buzzer_enabled)
-		  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);  // 피에조 부저 사각파 출력
+//	  if (buzzer_enabled)
+//		  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);  // 피에조 부저 사각파 출력
+
+	  if(buzzer_start)
+	  {
+		  if(buz_cnt < 100)
+			  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);  // 피에조 부저 사각파 출력
+		  else
+		  {
+			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+			  buzzer_start = false;
+		  }
+	  }
+
   }
 
   timer16_10us++;
@@ -475,17 +489,22 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   /* USER CODE BEGIN TIM1_TRG_COM_TIM17_IRQn 1 */
   timer17_ms++;
 
-  uint16_t buz_cnt = 0;
+//  uint16_t buz_cnt = 0;
   static bool buz_init = false;
 
-  if(!buz_init)
+//  if(!buz_init)
+//  {
+//	  if(++buz_cnt > 100)
+//	  {
+//		  buz_init = true;
+//	  }
+//	  else
+//		  buzzer_op(BUZZER_TOGGLE);
+//  }
+
+  if(buzzer_start)
   {
-	  if(++buz_cnt > 100)
-	  {
-		  buz_init = true;
-	  }
-	  else
-		  buzzer_op(BUZZER_TOGGLE);
+	  buz_cnt++;
   }
 
 

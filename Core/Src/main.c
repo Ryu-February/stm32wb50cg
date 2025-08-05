@@ -365,7 +365,8 @@ int main(void)
 	  static bool buz_once = true;
 	  if(buz_once == true)
 	  {
-		  buzzer_beep(B_8, 300);
+		  pitches_to_period(B_5);
+//		  buzzer_beep(B_8, 300);
 //		  buzzer_beep(B_5, 100);
 //		  buzzer_beep(B_8, 100);
 //		  buzzer_beep(15000, 200);
