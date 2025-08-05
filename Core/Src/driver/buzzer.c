@@ -7,6 +7,7 @@
 
 #include "buzzer.h"
 #include <stdbool.h>
+#include "uart.h"
 
 extern TIM_HandleTypeDef htim1;
 volatile bool buzzer_enabled = false;
@@ -61,9 +62,11 @@ void buzzer_op(buzzer_t op)
 
 void pitches_to_period(uint16_t tone)
 {
-	uint16_t temp 	= 1 / tone;		//tone == frequency
-	uint16_t period = (temp - 1) * TIM1_IRQ_PERIOD;
+	float temp		= 1.0f / tone;		//tone == frequency
+	uint16_t period = (float)(temp * TIM1_IRQ_PERIOD) - 1;
 	TIM1->ARR = period;
+	TIM1->CNT = 0;
+	TIM1->EGR |= TIM_EGR_UG;  // ARR 갱신
 
 	buzzer_start = true;
 }

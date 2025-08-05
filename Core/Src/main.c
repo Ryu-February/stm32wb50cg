@@ -267,7 +267,7 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-//  HAL_TIM_Base_Start_IT(&htim1);
+  HAL_TIM_Base_Start_IT(&htim1);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim16);
   HAL_TIM_Base_Start_IT(&htim17);
@@ -375,7 +375,6 @@ int main(void)
 //		  buzzer_beep(C_6, 200);
 		  buz_once = false;
 	  }
-
 
 	  if(check_color == true && cur_mode == 0)
 	  {

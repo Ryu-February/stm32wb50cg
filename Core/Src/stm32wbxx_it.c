@@ -285,10 +285,10 @@ void TIM1_UP_TIM16_IRQHandler(void)
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
-  if (htim1.Instance != NULL)
-  {
-    HAL_TIM_IRQHandler(&htim1);
-  }
+//  if (htim1.Instance != NULL)
+//  {
+//    HAL_TIM_IRQHandler(&htim1);
+//  }
   if (htim16.Instance != NULL)
   {
     HAL_TIM_IRQHandler(&htim16);
@@ -314,6 +314,10 @@ void TIM1_UP_TIM16_IRQHandler(void)
 		  }
 	  }
 
+  }
+  if (htim1.Instance != NULL)
+  {
+    HAL_TIM_IRQHandler(&htim1);
   }
 
   timer16_10us++;
@@ -490,7 +494,7 @@ void TIM1_TRG_COM_TIM17_IRQHandler(void)
   timer17_ms++;
 
 //  uint16_t buz_cnt = 0;
-  static bool buz_init = false;
+//  static bool buz_init = false;
 
 //  if(!buz_init)
 //  {
