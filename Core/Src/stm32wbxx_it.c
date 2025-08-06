@@ -108,6 +108,7 @@ extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
 extern uint8_t insert_index;
 extern volatile bool buzzer_enabled;
 extern volatile bool buzzer_start;
+extern volatile bool card_once;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -460,14 +461,16 @@ void TIM1_UP_TIM16_IRQHandler(void)
 							{
 								step_stop();
 								color_mode = MODE_NONE;
-								insert_index = 0;
+//								insert_index = 0;
 								run_index = 0;
 								step_set_period(500, 500);
 								line_tracing_mod = false;
 								step_op = NONE;
 								delay_flag = false;
 								total_step_init();
-								repeat_target = 1;
+//								repeat_target = 1;
+								repeat_count = 0;
+								card_once = false;
 							}
 
 						}

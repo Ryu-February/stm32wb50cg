@@ -105,6 +105,8 @@ uint16_t offset_black = 0;
 uint16_t offset_white = 0;
 uint16_t offset_average = 0;
 
+volatile bool card_once = false;
+
 bh1745_color_data_t line_left, line_right;
 
 extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
@@ -408,14 +410,17 @@ int main(void)
 
 		  static bool insert_fin = false;
 
-		  if(insert_fin && color_mode == MODE_INSERT)
+
+		  if(insert_fin && !card_once)
 		  {
 //			  HAL_Delay(100);
+			  card_once = true;
 			  if(pb0_pressed)
 			  {
+				  HAL_Delay(500);
 				  color_mode = MODE_RUN;
 				  uart_printf(">> Mode [RUN]\r\n");
-				  insert_fin = false;
+//				  insert_fin = false;
 			  }
 		  }
 
@@ -442,7 +447,10 @@ int main(void)
 			  {
 				  color_mode = MODE_INSERT;
 				  uart_printf(">> Mode [INSERT]\r\n");
-//		  			insert_index = 0;
+				  insert_index = 0;
+				  repeat_target = 1;
+				  insert_fin = false;
+//				  card_once = false;
 			  }
 			  else if (detected_left == COLOR_LIGHT_GREEN && detected_right == COLOR_ORANGE && color_mode == MODE_INSERT)
 			  {
@@ -450,6 +458,7 @@ int main(void)
 				  insert_fin = true;
 //				  color_mode = MODE_RUN;
 //				  uart_printf(">> Mode [RUN]\r\n");
+				  card_once = false;
 			  }
 			  else
 			  {
