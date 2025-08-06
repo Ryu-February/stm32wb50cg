@@ -338,7 +338,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				#elif(_USE_STEP_NUM == _STEP_NUM_728)
 				fix_step = 1500;
 				#else
-				fix_step = 2000;
+				fix_step = 2800;
 				#endif
 				step_drive(FORWARD);
 				step_op = FORWARD;
@@ -349,7 +349,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				#elif(_USE_STEP_NUM == _STEP_NUM_728)
 				fix_step = 1500;
 				#else
-				fix_step = 2000;
+				fix_step = 2800;
 				#endif
 				step_drive(REVERSE);
 				step_op = REVERSE;
@@ -382,12 +382,12 @@ void TIM1_UP_TIM16_IRQHandler(void)
 				step_drive(step_op);
 				break;
 			case MODE_FAST_FORWARD :
-				fix_step = 850;
+				fix_step = 2500;
 				step_drive(FORWARD);
 				step_set_period(2000, 700);
 				break;
 			case MODE_SLOW_FORWARD :
-				fix_step = 850;
+				fix_step = 2500;
 				step_drive(FORWARD);
 				step_set_period(700, 2000);
 				break;
@@ -443,7 +443,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 						step_op = STOP;
 
 						uint16_t cur_ms = timer17_ms;
-						if(cur_ms - prev_ms > 500)
+						if(cur_ms - prev_ms > 1000)
 						{
 //							prev_ms = cur_ms;
 							is_running = false;
@@ -462,7 +462,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 								color_mode = MODE_NONE;
 								insert_index = 0;
 								run_index = 0;
-								step_set_period(1500, 1500);
+								step_set_period(500, 500);
 								line_tracing_mod = false;
 								step_op = NONE;
 								delay_flag = false;
@@ -492,7 +492,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  delay_flag = false;
 	  line_tracing_mod = false;
 	  step_op = NONE;
-	  step_set_period(1500, 1500);
+	  step_set_period(500, 500);
   }
 
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */

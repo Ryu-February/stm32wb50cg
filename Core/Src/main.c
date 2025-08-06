@@ -282,7 +282,7 @@ int main(void)
 
   step_init_all();
   step_stop();
-  step_set_period(1500, 1500);
+  step_set_period(500, 500);
 
   load_color_reference_table();
   calculate_color_brightness_offset();
@@ -405,6 +405,20 @@ int main(void)
 		  uart_printf("default offset: %d\r\n", left_brightness - right_brightness);
 		  uart_printf("-------------------------------------------------------\r\n");
 
+
+		  static bool insert_fin = false;
+
+		  if(insert_fin && color_mode == MODE_INSERT)
+		  {
+//			  HAL_Delay(100);
+			  if(pb0_pressed)
+			  {
+				  color_mode = MODE_RUN;
+				  uart_printf(">> Mode [RUN]\r\n");
+				  insert_fin = false;
+			  }
+		  }
+
 		  if (detected_left == detected_right && color_mode != MODE_INSERT)
 		  {
 			  switch (detected_left)
@@ -432,8 +446,10 @@ int main(void)
 			  }
 			  else if (detected_left == COLOR_LIGHT_GREEN && detected_right == COLOR_ORANGE && color_mode == MODE_INSERT)
 			  {
-				  color_mode = MODE_RUN;
-				  uart_printf(">> Mode [RUN]\r\n");
+//				  HAL_Delay(2000);
+				  insert_fin = true;
+//				  color_mode = MODE_RUN;
+//				  uart_printf(">> Mode [RUN]\r\n");
 			  }
 			  else
 			  {

@@ -352,6 +352,7 @@ StepOperation mode_to_step(color_mode_t mode)
 
 uint16_t mode_to_step_count(color_mode_t mode)
 {
+#if(_USE_STEP_NUM == _STEP_NUM_119)
 	switch (mode)
 	{
 		case MODE_FORWARD:
@@ -376,10 +377,37 @@ uint16_t mode_to_step_count(color_mode_t mode)
 		default:
 			return 0;
 	}
+#elif(_USE_STEP_NUM == _STEP_NUM_729)
+	switch (mode)
+	{
+		case MODE_FORWARD:
+		case MODE_BACKWARD:
+		case MODE_FAST_FORWARD:
+		case MODE_SLOW_FORWARD:
+			return 2800;
+		case MODE_FAST_BACKWARD:
+		case MODE_SLOW_BACKWARD:
+			return 850;
+
+		case MODE_LEFT:
+		case MODE_RIGHT:
+			return 1130;
+
+		case MODE_LONG_FORWARD:
+			return 1900;
+
+		case MODE_LINE_TRACE:
+			return 30000;
+
+		default:
+			return 0;
+	}
+#endif
 }
 
 uint16_t mode_to_left_period(color_mode_t mode)
 {
+#if(_USE_STEP_MODE == _STEP_NUM_119)
 	switch (mode)
 	{
 		case MODE_FAST_FORWARD:   return 2000;
@@ -388,16 +416,37 @@ uint16_t mode_to_left_period(color_mode_t mode)
 		case MODE_SLOW_BACKWARD:  return 1000;
 		default:                  return 1000; // 기본값
 	}
+#elif(_USE_STEP_MODE == _STEP_NUM_729)
+	switch (mode)
+	{
+		case MODE_FAST_FORWARD:   return 2000;
+		case MODE_SLOW_FORWARD:   return 700;
+		case MODE_FAST_BACKWARD:  return 1500;
+		case MODE_SLOW_BACKWARD:  return 1000;
+		default:                  return 500; // 기본값
+	}
+#endif
 }
 
 uint16_t mode_to_right_period(color_mode_t mode)
 {
+#if(_USE_STEP_MODE == _STEP_NUM_119)
 	switch (mode)
 	{
 		case MODE_FAST_FORWARD:   return 700;
 		case MODE_SLOW_FORWARD:   return 2000;
 		case MODE_FAST_BACKWARD:  return 1000;
 		case MODE_SLOW_BACKWARD:  return 1500;
-		default:                  return 1000; // 기본값
+		default:                  return 500; // 기본값
 	}
+#elif(_USE_STEP_MODE == _STEP_NUM_729)
+	switch (mode)
+	{
+		case MODE_FAST_FORWARD:   return 700;
+		case MODE_SLOW_FORWARD:   return 2000;
+		case MODE_FAST_BACKWARD:  return 1000;
+		case MODE_SLOW_BACKWARD:  return 1500;
+		default:                  return 500; // 기본값
+	}
+#endif
 }
