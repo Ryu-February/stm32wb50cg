@@ -42,6 +42,12 @@
   #define STEP_PER_REV  80
 #endif
 
+#define _STEP_NUM_119	0	//시계방향(기어 x)
+#define _STEP_NUM_728	1	//반시계방향(기어비 10대1)
+#define _STEP_NUM_729	2	//반시계방향(기어비 20대1)
+
+#define _USE_STEP_NUM	_STEP_NUM_729
+
 typedef struct StepMotor
 {
   GPIO_TypeDef* in1_port; uint16_t in1_pin;

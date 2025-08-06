@@ -333,22 +333,46 @@ void TIM1_UP_TIM16_IRQHandler(void)
 	  switch (color_mode)
 	    {
 			case MODE_FORWARD :
+				#if(_USE_STEP_NUM == _STEP_NUM_119)
 				fix_step = 1000;
+				#elif(_USE_STEP_NUM == _STEP_NUM_728)
+				fix_step = 1500;
+				#else
+				fix_step = 2000;
+				#endif
 				step_drive(FORWARD);
 				step_op = FORWARD;
 				break;
 			case MODE_BACKWARD :
+				#if(_USE_STEP_NUM == _STEP_NUM_119)
 				fix_step = 1000;
+				#elif(_USE_STEP_NUM == _STEP_NUM_728)
+				fix_step = 1500;
+				#else
+				fix_step = 2000;
+				#endif
 				step_drive(REVERSE);
 				step_op = REVERSE;
 			 	break;
 			case MODE_LEFT :
+				#if(_USE_STEP_NUM == _STEP_NUM_119)
 				fix_step = 390;
+				#elif(_USE_STEP_NUM == _STEP_NUM_728)
+				fix_step = 535;
+				#else
+				fix_step = 1130;
+				#endif
 				step_drive(TURN_LEFT);
 				step_op = TURN_LEFT;
 				break;
 			case MODE_RIGHT :
+				#if(_USE_STEP_NUM == _STEP_NUM_119)
 				fix_step = 390;
+				#elif(_USE_STEP_NUM == _STEP_NUM_728)
+				fix_step = 535;
+				#else
+				fix_step = 1130;
+				#endif
 				step_drive(TURN_RIGHT);
 				step_op = TURN_RIGHT;
 				break;

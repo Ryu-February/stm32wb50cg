@@ -20,9 +20,9 @@ extern bh1745_color_data_t line_left, line_right;
 extern volatile StepOperation step_op;
 
 // PID 계수
-float Kp = 10;
+float Kp = 20;
 float Ki = 0.0;
-float Kd = 10;
+float Kd = 15;
 
 float prev_error = 0;
 float integral = 0;
