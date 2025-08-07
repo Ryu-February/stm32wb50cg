@@ -72,5 +72,5 @@ void pitches_to_period(uint16_t tone)
 	TIM1->EGR |= TIM_EGR_UG;  // ARR 갱신
 	TIM1->DIER |= TIM_DIER_UIE;
 
-	buzzer_start = true;
+//	buzzer_start = true;
 }

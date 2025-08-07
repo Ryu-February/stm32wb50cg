@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <step.h>
 #include <buzzer.h>
+#include <pitches.h>
 #include <stm32wbxx_hal.h>
 #include <stm32wbxx_hal_gpio.h>
 #include <stm32wbxx_hal_i2c.h>
@@ -306,12 +307,83 @@ void TIM1_UP_TIM16_IRQHandler(void)
 
 	  if(buzzer_start)
 	  {
-		  if(buz_cnt < 100)
+		  if(buz_cnt < 8000)
 		  	  buzzer_op(BUZZER_TOGGLE);
 		  else
 		  {
 			  buzzer_op(BUZZER_OFF);
 			  buzzer_start = false;
+		  }
+
+		  if(buz_cnt < 500)
+		  {
+//			  pitches_to_period(B_4);
+			  pitches_to_period(B_4);
+		  }
+		  else if(buz_cnt < 1000 && buz_cnt >= 500)
+		  {
+//			  pitches_to_period(E_5);
+			  pitches_to_period(FS_5);
+		  }
+		  else if(buz_cnt < 1500 && buz_cnt >= 1000)
+		  {
+//			  pitches_to_period(FS_5);
+			  pitches_to_period(B_5);
+		  }
+		  else if(buz_cnt < 2000 && buz_cnt >= 1500)
+		  {
+//			  pitches_to_period(G_5);
+			  pitches_to_period(FS_5);
+		  }
+		  else if(buz_cnt < 2500 && buz_cnt >= 2000)
+		  {
+//			  pitches_to_period(B_5);
+			  pitches_to_period(G_4);
+		  }
+		  else if(buz_cnt < 3000 && buz_cnt >= 2500)
+		  {
+//			  pitches_to_period(A_5);
+			  pitches_to_period(D_5);
+		  }
+		  else if(buz_cnt < 3500 && buz_cnt >= 3000)
+		  {
+			  pitches_to_period(G_5);
+		  }
+		  else if(buz_cnt < 4000 && buz_cnt >= 3500)
+		  {
+			  pitches_to_period(D_5);
+		  }
+		  else if(buz_cnt < 4500 && buz_cnt >= 4000)
+		  {
+			  pitches_to_period(A_4);
+		  }
+		  else if(buz_cnt < 5000 && buz_cnt >= 4500)
+		  {
+			  pitches_to_period(E_5);
+		  }
+		  else if(buz_cnt < 5500 && buz_cnt >= 5000)
+		  {
+			  pitches_to_period(A_5);
+		  }
+		  else if(buz_cnt < 6000 && buz_cnt >= 5500)
+		  {
+			  pitches_to_period(E_5);
+		  }
+		  else if(buz_cnt < 6500 && buz_cnt >= 6000)
+		  {
+			  pitches_to_period(D_5);
+		  }
+		  else if(buz_cnt < 7000 && buz_cnt >= 6500)
+		  {
+			  pitches_to_period(A_5);
+		  }
+		  else if(buz_cnt < 7500 && buz_cnt >= 7000)
+		  {
+			  pitches_to_period(D_6);
+		  }
+		  else if(buz_cnt < 8000 && buz_cnt >= 7500)
+		  {
+			  pitches_to_period(A_5);
 		  }
 	  }
 

@@ -112,6 +112,7 @@ bh1745_color_data_t line_left, line_right;
 extern color_mode_t insert_queue[MAX_INSERTED_COMMANDS];
 extern uint8_t insert_index;
 extern volatile uint8_t repeat_target;
+extern volatile bool buzzer_start;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -367,8 +368,8 @@ int main(void)
 	  static bool buz_once = true;
 	  if(buz_once == true)
 	  {
-//		  buzzer_start = true;
-		  pitches_to_period(B_5);
+		  buzzer_start = true;
+//		  pitches_to_period(B_5);
 //		  buzzer_beep(B_8, 300);
 //		  buzzer_beep(B_5, 100);
 //		  buzzer_beep(B_8, 100);
